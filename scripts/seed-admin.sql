@@ -1,31 +1,32 @@
 -- Seed default tenant and admin user
--- Password: admin123 (hashed with bcryptjs)
+-- Email: admin@kistly.local
+-- Password: admin123
 -- Hash generated with: bcryptjs.hashSync('admin123', 12)
 
 -- Insert default tenant
-INSERT INTO "Tenant" (id, name, slug, email, "createdAt", "updatedAt")
+INSERT INTO "Tenant" (id, name, subdomain, "ownerEmail", status, "updatedAt")
 VALUES (
-  gen_random_uuid(),
+  'default-tenant-id',
   'Default Tenant',
   'default',
   'admin@kistly.local',
-  NOW(),
+  'active',
   NOW()
 )
-ON CONFLICT (slug) DO NOTHING;
+ON CONFLICT (subdomain) DO NOTHING;
 
 -- Insert admin user with bcryptjs hashed password for 'admin123'
--- Hash: $2a$12$...
-INSERT INTO "User" (id, email, name, "passwordHash", role, "tenantId", "createdAt", "updatedAt")
+-- Hash: $2a$12$8IlHWQdV.RQkJ8/W7VQKvOqq4LJmJZTuABOiqVo0GlCLQhG9zPPwC
+INSERT INTO "User" (id, email, password, "firstName", "lastName", role, "tenantId", "updatedAt")
 SELECT
-  gen_random_uuid(),
+  'default-admin-id',
   'admin@kistly.local',
-  'Admin User',
   '$2a$12$8IlHWQdV.RQkJ8/W7VQKvOqq4LJmJZTuABOiqVo0GlCLQhG9zPPwC',
-  'ADMIN',
+  'Admin',
+  'User',
+  'OWNER',
   id,
-  NOW(),
   NOW()
 FROM "Tenant"
-WHERE slug = 'default'
+WHERE subdomain = 'default'
 ON CONFLICT (email) DO NOTHING;
