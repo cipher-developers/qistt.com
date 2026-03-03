@@ -9,27 +9,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { installmentId, amount, receiptNumber, notes } = await request.json();
+    const { planId, customerId, amount, description } = await request.json();
 
-    if (!installmentId || !amount) {
+    if (!planId || !customerId || !amount) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Verify installment belongs to tenant
-    const installment = await prisma.installment.findFirst({
+    // Verify plan belongs to tenant
+    const plan = await prisma.installmentPlan.findFirst({
       where: {
-        id: installmentId,
-        plan: { tenantId: tenant.id },
+        id: planId,
+        tenantId: tenant.id,
       },
-      include: { plan: true },
     });
 
-    if (!installment) {
+    if (!plan) {
       return NextResponse.json(
-        { error: "Installment not found" },
+        { error: "Plan not found" },
         { status: 404 }
       );
     }
@@ -37,24 +36,17 @@ export async function POST(request: NextRequest) {
     // Create transaction
     const transaction = await prisma.transaction.create({
       data: {
-        installmentId,
+        planId,
+        customerId,
+        tenantId: tenant.id,
         amount: parseFloat(amount),
-        receiptNumber: receiptNumber || null,
-        notes: notes || null,
+        description: description || null,
         transactionDate: new Date(),
       },
-    });
-
-    // Update installment
-    const newPaidAmount = (installment.paidAmount || 0) + parseFloat(amount);
-    const status =
-      newPaidAmount >= installment.amount ? "paid" : "partial";
-
-    await prisma.installment.update({
-      where: { id: installmentId },
-      data: {
-        paidAmount: newPaidAmount,
-        status,
+      include: {
+        plan: {
+          include: { customer: true, item: true },
+        },
       },
     });
 
@@ -80,17 +72,11 @@ export async function GET(request: NextRequest) {
 
     const transactions = await prisma.transaction.findMany({
       where: {
-        installment: {
-          plan: { tenantId: tenant.id },
-        },
+        tenantId: tenant.id,
       },
       include: {
-        installment: {
-          include: {
-            plan: {
-              include: { customer: true, item: true },
-            },
-          },
+        plan: {
+          include: { customer: true, item: true },
         },
       },
       orderBy: { transactionDate: "desc" },

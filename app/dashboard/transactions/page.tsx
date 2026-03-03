@@ -14,21 +14,13 @@ export default async function TransactionsPage() {
 
   const transactions = await prisma.transaction.findMany({
     where: {
-      installment: {
-        plan: {
-          tenantId: tenant?.id,
-        },
-      },
+      tenantId: tenant?.id,
     },
     include: {
-      installment: {
+      plan: {
         include: {
-          plan: {
-            include: {
-              customer: true,
-              item: true,
-            },
-          },
+          customer: true,
+          item: true,
         },
       },
     },
@@ -119,19 +111,19 @@ export default async function TransactionsPage() {
                     className="hover:bg-slate-50 transition-colors"
                   >
                     <td className="px-6 py-4 text-sm text-slate-900 font-medium">
-                      {transaction.installment.plan.customer.name}
+                      {transaction.plan.customer.name}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
-                      {transaction.installment.plan.item.name}
+                      {transaction.plan.item.name}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
-                      #{transaction.installment.installmentNumber}
+                      Plan #{transaction.planId.slice(0, 8)}
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-green-600">
                       ${transaction.amount.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
-                      {transaction.receiptNumber || "-"}
+                      {transaction.description || "-"}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
                       {new Date(

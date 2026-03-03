@@ -9,21 +9,15 @@ export const metadata = {
 export default async function NewTransactionPage() {
   const tenant = await getCurrentTenant();
 
-  // Get all pending installments
-  const pendingInstallments = await prisma.installment.findMany({
+  // Get all active plans
+  const plans = await prisma.installmentPlan.findMany({
     where: {
-      status: "pending",
-      plan: {
-        tenantId: tenant?.id,
-      },
+      tenantId: tenant?.id,
+      status: "active",
     },
     include: {
-      plan: {
-        include: {
-          customer: true,
-          item: true,
-        },
-      },
+      customer: { select: { id: true, name: true } },
+      item: { select: { id: true, name: true } },
     },
   });
 
@@ -33,7 +27,7 @@ export default async function NewTransactionPage() {
         <h1 className="text-3xl font-bold text-slate-900">Record Payment</h1>
         <p className="text-slate-600 mt-1">Create a new payment transaction</p>
       </div>
-      <TransactionForm tenantId={tenant?.id} installments={pendingInstallments} />
+      <TransactionForm tenantId={tenant?.id} plans={plans} />
     </div>
   );
 }
