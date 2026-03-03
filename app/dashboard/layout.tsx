@@ -15,7 +15,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-slate-50">
-      {/* Sidebar - hidden on mobile, visible on md and up */}
+      {/* Desktop Sidebar - hidden on mobile, visible on md and up */}
       <div className="hidden md:flex">
         <Sidebar />
       </div>
