@@ -56,7 +56,9 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <Label htmlFor="email" className="text-slate-700">Email</Label>
+        <Label htmlFor="email" className="text-slate-700">
+          Email
+        </Label>
         <Input
           id="email"
           type="email"
@@ -68,7 +70,9 @@ export function LoginForm() {
         />
       </div>
       <div>
-        <Label htmlFor="password" className="text-slate-700">Password</Label>
+        <Label htmlFor="password" className="text-slate-700">
+          Password
+        </Label>
         <Input
           id="password"
           type="password"
