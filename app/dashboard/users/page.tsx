@@ -15,7 +15,8 @@ export default async function UsersPage() {
     select: {
       id: true,
       email: true,
-      name: true,
+      firstName: true,
+      lastName: true,
       role: true,
       createdAt: true,
     },
@@ -48,7 +49,7 @@ export default async function UsersPage() {
               <tbody className="divide-y divide-slate-200">
                 {users.map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 text-sm text-slate-900 font-medium">{user.name}</td>
+                    <td className="px-6 py-4 text-sm text-slate-900 font-medium">{user.firstName} {user.lastName}</td>
                     <td className="px-6 py-4 text-sm text-slate-600">{user.email}</td>
                     <td className="px-6 py-4 text-sm">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
