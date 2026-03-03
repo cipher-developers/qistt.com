@@ -18,13 +18,13 @@ export const authConfig: NextAuthConfig = {
 
         if (!user) return null;
 
-        const passwordMatch = await compare(credentials.password as string, user.passwordHash);
+        const passwordMatch = await compare(credentials.password as string, user.password);
         if (!passwordMatch) return null;
 
         return {
           id: user.id,
           email: user.email,
-          name: user.name,
+          name: `${user.firstName} ${user.lastName}`,
           role: user.role,
           tenantId: user.tenantId,
           tenantName: user.tenant?.name,
