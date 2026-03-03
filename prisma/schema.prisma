@@ -76,6 +76,9 @@ model Item {
   id         String   @id @default(cuid())
   name       String
   description String?
+  sku        String?
+  costPrice  Float?
+  sellingPrice Float?
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   tenantId   String
