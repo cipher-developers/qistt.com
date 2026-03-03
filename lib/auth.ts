@@ -62,4 +62,4 @@ export const authConfig: NextAuthConfig = {
 };
 
 import NextAuth from "next-auth";
-export const { auth, handlers, signIn, signOut } = NextAuth(authConfig);
+export const { auth, handlers: { GET, POST }, signIn, signOut } = NextAuth(authConfig);
