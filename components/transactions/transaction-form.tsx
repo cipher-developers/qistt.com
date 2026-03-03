@@ -19,7 +19,7 @@ interface Installment {
   installmentNumber: number;
   amount: number;
   dueDate: string;
-  installmentPlan: {
+  plan: {
     customer: { name: string };
     item: { name: string };
   };
@@ -99,7 +99,7 @@ export function TransactionForm({
             <SelectContent>
               {installments.map((inst) => (
                 <SelectItem key={inst.id} value={inst.id}>
-                  {inst.installmentPlan.customer.name} - {inst.installmentPlan.item.name} (Installment #{inst.installmentNumber}) - ${inst.amount.toFixed(2)}
+                  {inst.plan.customer.name} - {inst.plan.item.name} (Installment #{inst.installmentNumber}) - ${inst.amount.toFixed(2)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -110,11 +110,11 @@ export function TransactionForm({
           <div className="bg-slate-50 p-4 rounded-md space-y-2">
             <div className="flex justify-between">
               <span className="text-slate-700">Customer:</span>
-              <span className="font-medium">{selectedInstallment.installmentPlan.customer.name}</span>
+              <span className="font-medium">{selectedInstallment.plan.customer.name}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-700">Item:</span>
-              <span className="font-medium">{selectedInstallment.installmentPlan.item.name}</span>
+              <span className="font-medium">{selectedInstallment.plan.item.name}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-700">Due Date:</span>

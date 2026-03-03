@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
     const installment = await prisma.installment.findFirst({
       where: {
         id: installmentId,
-        installmentPlan: { tenantId: tenant.id },
+        plan: { tenantId: tenant.id },
       },
-      include: { installmentPlan: true },
+      include: { plan: true },
     });
 
     if (!installment) {
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     // Update installment
     const newPaidAmount = (installment.paidAmount || 0) + parseFloat(amount);
     const status =
-      newPaidAmount >= installment.amount ? "PAID" : "PARTIAL";
+      newPaidAmount >= installment.amount ? "paid" : "partial";
 
     await prisma.installment.update({
       where: { id: installmentId },
@@ -81,13 +81,13 @@ export async function GET(request: NextRequest) {
     const transactions = await prisma.transaction.findMany({
       where: {
         installment: {
-          installmentPlan: { tenantId: tenant.id },
+          plan: { tenantId: tenant.id },
         },
       },
       include: {
         installment: {
           include: {
-            installmentPlan: {
+            plan: {
               include: { customer: true, item: true },
             },
           },

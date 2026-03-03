@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         description: description || null,
-        // sellingPrice: parseFloat(sellingPrice),
-        // costPrice: parseFloat(costPrice),
-        // sku: sku || null,
+        sellingPrice: parseFloat(sellingPrice),
+        costPrice: parseFloat(costPrice),
+        sku: sku || null,
         categoryId: categoryId || null,
         tenantId: tenant.id,
       },

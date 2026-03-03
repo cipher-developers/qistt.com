@@ -16,7 +16,7 @@ export default async function OnboardingPage() {
     }),
     prisma.item.findMany({
       where: { tenantId: tenant?.id },
-      select: { id: true, name: true },
+      select: { id: true, name: true, sellingPrice: true },
     }),
   ]);
 

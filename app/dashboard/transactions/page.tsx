@@ -15,7 +15,7 @@ export default async function TransactionsPage() {
   const transactions = await prisma.transaction.findMany({
     where: {
       installment: {
-        installmentPlan: {
+        plan: {
           tenantId: tenant?.id,
         },
       },
@@ -23,7 +23,7 @@ export default async function TransactionsPage() {
     include: {
       installment: {
         include: {
-          installmentPlan: {
+          plan: {
             include: {
               customer: true,
               item: true,
@@ -119,10 +119,10 @@ export default async function TransactionsPage() {
                     className="hover:bg-slate-50 transition-colors"
                   >
                     <td className="px-6 py-4 text-sm text-slate-900 font-medium">
-                      {transaction.installment.installmentPlan.customer.name}
+                      {transaction.installment.plan.customer.name}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
-                      {transaction.installment.installmentPlan.item.name}
+                      {transaction.installment.plan.item.name}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
                       #{transaction.installment.installmentNumber}

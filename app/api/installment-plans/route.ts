@@ -32,6 +32,8 @@ export async function POST(request: NextRequest) {
         sellingPrice: parseFloat(sellingPrice),
         advancePaid: parseFloat(advancePaid) || 0,
         months: parseInt(months),
+        monthlyAmount: parseFloat(((sellingPrice - (advancePaid || 0)) / months).toFixed(2)),
+        startDate: new Date(),
         tenantId: tenant.id,
       },
     });
@@ -49,12 +51,12 @@ export async function POST(request: NextRequest) {
       dueDate.setDate(1); // Due on 1st of each month
 
       installments.push({
-        installmentPlanId: plan.id,
+        planId: plan.id,
         installmentNumber: i + 1,
         amount: parseFloat(monthlyAmount.toFixed(2)),
         dueDate,
         paidAmount: 0,
-        status: "PENDING",
+        status: "pending",
       });
     }
 

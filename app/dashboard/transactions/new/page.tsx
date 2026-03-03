@@ -12,13 +12,13 @@ export default async function NewTransactionPage() {
   // Get all pending installments
   const pendingInstallments = await prisma.installment.findMany({
     where: {
-      status: "PENDING",
-      installmentPlan: {
+      status: "pending",
+      plan: {
         tenantId: tenant?.id,
       },
     },
     include: {
-      installmentPlan: {
+      plan: {
         include: {
           customer: true,
           item: true,
