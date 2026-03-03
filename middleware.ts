@@ -1,4 +1,4 @@
-import { withAuth } from "next-auth/middleware";
+import { auth } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function middleware(request: NextRequest) {
@@ -25,30 +25,18 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  // For other pages, check authentication
-  return withAuth(
-    (req) => {
-      const token = req.nextauth?.token;
-      
-      if (!token) {
-        return NextResponse.redirect(new URL("/login", request.url));
-      }
+  // For other pages, check authentication using auth()
+  const session = await auth();
+  
+  if (!session?.user) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
 
-      return NextResponse.next({
-        request: {
-          headers: requestHeaders,
-        },
-      });
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
     },
-    {
-      callbacks: {
-        authorized: ({ token }) => !!token,
-      },
-      pages: {
-        signIn: "/login",
-      },
-    }
-  )(request);
+  });
 }
 
 export const config = {
