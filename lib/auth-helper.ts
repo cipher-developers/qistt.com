@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import prisma from "@/lib/prisma";
 
 export async function getCurrentUser() {
   const session = await auth();
@@ -15,6 +14,8 @@ export async function getCurrentTenant() {
   if (!session?.user) {
     return null;
   }
+
+  const { default: prisma } = await import("@/lib/prisma");
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: (session.user as any).tenantId },

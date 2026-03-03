@@ -6,7 +6,7 @@ export function middleware(request: NextRequest) {
   // Extract subdomain
   const parts = hostname.split(".");
   let subdomain = "";
-  
+
   if (parts.length > 2 || (parts.length === 2 && parts[0] !== "www")) {
     subdomain = parts[0];
   }
