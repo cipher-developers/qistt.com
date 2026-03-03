@@ -1,14 +1,16 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { SessionProvider } from 'next-auth/react'
+import { auth } from '@/lib/auth'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'Kistly - Installment Manager',
+  description: 'Manage installment plans and payments with ease',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -29,15 +31,19 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const session = await auth()
+
   return (
     <html lang="en">
       <body className="font-sans antialiased">
-        {children}
+        <SessionProvider session={session}>
+          {children}
+        </SessionProvider>
         <Analytics />
       </body>
     </html>
