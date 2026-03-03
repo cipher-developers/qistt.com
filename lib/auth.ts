@@ -4,10 +4,14 @@ import { compare } from "bcryptjs";
 import prisma from "./prisma";
 
 export const authConfig: NextAuthConfig = {
+  trustHost: true,
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
       async authorize(credentials) {
+        console.log("[v0] authorize called with email:", credentials?.email);
         if (!credentials?.email || !credentials?.password) {
+          console.log("[v0] missing credentials");
           return null;
         }
 
@@ -16,12 +20,20 @@ export const authConfig: NextAuthConfig = {
           include: { tenant: true },
         });
 
-        if (!user) return null;
+        console.log("[v0] user found:", user?.email);
+        if (!user) {
+          console.log("[v0] user not found");
+          return null;
+        }
 
         const passwordMatch = await compare(credentials.password as string, user.password);
-        if (!passwordMatch) return null;
+        console.log("[v0] password match:", passwordMatch);
+        if (!passwordMatch) {
+          console.log("[v0] password mismatch");
+          return null;
+        }
 
-        return {
+        const returnUser = {
           id: user.id,
           email: user.email,
           name: `${user.firstName} ${user.lastName}`,
@@ -29,25 +41,31 @@ export const authConfig: NextAuthConfig = {
           tenantId: user.tenantId,
           tenantName: user.tenant?.name,
         };
+        console.log("[v0] authorize returning user:", returnUser);
+        return returnUser;
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
+      console.log("[v0] jwt callback - user:", user?.email, "token:", token);
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
         token.tenantId = (user as any).tenantId;
         token.tenantName = (user as any).tenantName;
+        console.log("[v0] jwt callback - updated token:", token);
       }
       return token;
     },
     async session({ session, token }) {
+      console.log("[v0] session callback - session:", session?.user?.email, "token:", token);
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
         (session.user as any).tenantId = token.tenantId;
         (session.user as any).tenantName = token.tenantName;
+        console.log("[v0] session callback - updated session:", session);
       }
       return session;
     },
@@ -62,4 +80,8 @@ export const authConfig: NextAuthConfig = {
 };
 
 import NextAuth from "next-auth";
-export const { auth, handlers: { GET, POST }, signIn, signOut } = NextAuth(authConfig);
+
+const { auth: authFn, handlers } = NextAuth(authConfig);
+
+export const auth = authFn;
+export const { GET, POST } = handlers;
