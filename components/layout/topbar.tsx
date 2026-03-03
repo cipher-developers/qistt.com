@@ -2,19 +2,23 @@
 
 import { useSession } from "next-auth/react";
 import { Bell, User } from "lucide-react";
+import { MobileNav } from "./mobile-nav";
 
 export function TopBar() {
   const { data: session } = useSession();
 
   return (
     <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-      <div className="min-w-0">
-        <h2 className="text-base sm:text-lg font-semibold text-slate-900 truncate">
-          {session?.user?.name || "Dashboard"}
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-600 truncate">
-          {(session?.user as any)?.tenantName || "Tenant"}
-        </p>
+      <div className="flex items-center gap-4 min-w-0 flex-1">
+        <MobileNav />
+        <div className="min-w-0">
+          <h2 className="text-base sm:text-lg font-semibold text-slate-900 truncate">
+            {session?.user?.name || "Dashboard"}
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 truncate">
+            {(session?.user as any)?.tenantName || "Tenant"}
+          </p>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
