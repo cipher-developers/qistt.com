@@ -1,7 +1,8 @@
-import { auth } from "@/lib/auth";
+import { getToken } from "next-auth/jwt";
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-export default auth((request) => {
+export default async function middleware(request: NextRequest) {
   const { pathname, hostname } = request.nextUrl;
 
   // Extract subdomain
@@ -25,7 +26,9 @@ export default auth((request) => {
     });
   }
 
-  if (!request.auth?.user) {
+  const token = await getToken({ req: request });
+
+  if (!token) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -34,7 +37,7 @@ export default auth((request) => {
       headers: requestHeaders,
     },
   });
-});
+}
 
 export const config = {
   matcher: [
