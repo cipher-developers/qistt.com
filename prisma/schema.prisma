@@ -1,0 +1,154 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String
+  firstName String
+  lastName  String
+  role      UserRole   @default(MANAGER)
+  tenantId  String
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([tenantId])
+  @@index([email])
+}
+
+model Tenant {
+  id              String   @id @default(cuid())
+  name            String
+  subdomain       String   @unique
+  ownerEmail      String
+  status          String   @default("active")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  users           User[]
+  customers       Customer[]
+  items           Item[]
+  categories      Category[]
+  installmentPlans InstallmentPlan[]
+  transactions    Transaction[]
+}
+
+model Customer {
+  id        String     @id @default(cuid())
+  name      String
+  phone     String
+  email     String?
+  address   String?
+  tenantId  String
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  installmentPlans InstallmentPlan[]
+  transactions Transaction[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([tenantId])
+  @@unique([tenantId, phone])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items     Item[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@unique([tenantId, name])
+}
+
+model Item {
+  id         String   @id @default(cuid())
+  name       String
+  description String?
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  installmentPlans InstallmentPlan[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([categoryId])
+}
+
+model InstallmentPlan {
+  id              String   @id @default(cuid())
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  itemId          String
+  item            Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sellingPrice    Float
+  advancePaid     Float    @default(0)
+  monthlyAmount   Float
+  months          Int
+  startDate       DateTime
+  status          String   @default("active")
+  installments    Installment[]
+  transactions    Transaction[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([itemId])
+}
+
+model Installment {
+  id              String   @id @default(cuid())
+  planId          String
+  plan            InstallmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  installmentNumber Int
+  dueDate         DateTime
+  amount          Float
+  paidAmount      Float    @default(0)
+  status          String   @default("pending") // pending, partial, paid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([planId])
+  @@unique([planId, installmentNumber])
+}
+
+model Transaction {
+  id              String   @id @default(cuid())
+  planId          String
+  plan            InstallmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  amount          Float
+  description     String?
+  transactionDate DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([planId])
+  @@index([customerId])
+}
+
+enum UserRole {
+  OWNER
+  MANAGER
+  STAFF
+}
