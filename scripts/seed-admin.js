@@ -9,12 +9,12 @@ async function main() {
 
     // Create default tenant
     const tenant = await prisma.tenant.upsert({
-      where: { slug: 'default' },
+      where: { subdomain: 'default' },
       update: {},
       create: {
         name: 'Default Tenant',
-        slug: 'default',
-        email: 'admin@kistly.local',
+        subdomain: 'default',
+        ownerEmail: 'admin@kistly.local',
       },
     });
 
@@ -29,9 +29,10 @@ async function main() {
       update: {},
       create: {
         email: 'admin@kistly.local',
-        name: 'Admin User',
-        passwordHash: hashedPassword,
-        role: 'ADMIN',
+        firstName: 'Admin',
+        lastName: 'User',
+        password: hashedPassword,
+        role: 'OWNER',
         tenantId: tenant.id,
       },
     });

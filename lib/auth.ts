@@ -13,9 +13,7 @@ export const authConfig: NextAuthConfig = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        console.log("[v0] authorize called with email:", credentials?.email);
         if (!credentials?.email || !credentials?.password) {
-          console.log("[v0] missing credentials");
           return null;
         }
 
@@ -24,52 +22,50 @@ export const authConfig: NextAuthConfig = {
           include: { tenant: true },
         });
 
-        console.log("[v0] user found:", user?.email);
         if (!user) {
-          console.log("[v0] user not found");
           return null;
         }
 
-        const passwordMatch = await compare(credentials.password as string, user.password);
-        console.log("[v0] password match:", passwordMatch);
-        if (!passwordMatch) {
-          console.log("[v0] password mismatch");
+        const hashedPassword = (user as any).password ?? (user as any).passwordHash;
+        if (!hashedPassword) {
           return null;
         }
+
+        const passwordMatch = await compare(credentials.password as string, hashedPassword);
+        if (!passwordMatch) {
+          return null;
+        }
+
+        const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
 
         const returnUser = {
           id: user.id,
           email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
+          name: fullName || user.email,
           role: user.role,
           tenantId: user.tenantId,
           tenantName: user.tenant?.name,
         };
-        console.log("[v0] authorize returning user:", returnUser);
         return returnUser;
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
-      console.log("[v0] jwt callback - user:", user?.email, "token:", token);
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
         token.tenantId = (user as any).tenantId;
         token.tenantName = (user as any).tenantName;
-        console.log("[v0] jwt callback - updated token:", token);
       }
       return token;
     },
     async session({ session, token }) {
-      console.log("[v0] session callback - session:", session?.user?.email, "token:", token);
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
         (session.user as any).tenantId = token.tenantId;
         (session.user as any).tenantName = token.tenantName;
-        console.log("[v0] session callback - updated session:", session);
       }
       return session;
     },

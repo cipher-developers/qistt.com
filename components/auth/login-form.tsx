@@ -19,26 +19,34 @@ export function LoginForm() {
     setError("");
     setLoading(true);
 
-    console.log("[v0] login form submitting with email:", email);
-
     try {
-      console.log("[v0] calling signIn with credentials provider");
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
       });
 
-      console.log("[v0] signIn result:", result);
+      if (!result) {
+        setError("Unable to sign in right now. Please try again.");
+        return;
+      }
 
-      if (!result?.ok) {
-        setError("Invalid email or password");
+      if (result.error) {
+        if (result.error === "CredentialsSignin") {
+          setError("Invalid email or password");
+        } else {
+          setError("Sign in failed. Please try again.");
+        }
+        return;
+      }
+
+      if (result.ok || result.url) {
+        router.replace("/dashboard");
+        router.refresh();
       } else {
-        console.log("[v0] login successful, redirecting to dashboard");
-        router.push("/dashboard");
+        setError("Invalid email or password");
       }
     } catch (err) {
-      console.log("[v0] login error:", err);
       setError("An error occurred. Please try again.");
     } finally {
       setLoading(false);

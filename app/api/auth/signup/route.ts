@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
+import { UserRole } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest) {
     const tenant = await prisma.tenant.create({
       data: {
         name: tenantName,
+        ownerEmail: email,
         subdomain: tenantName.toLowerCase().replace(/\s+/g, "-"),
       },
     });
@@ -40,9 +42,10 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.create({
       data: {
         email,
-        passwordHash: hashedPassword,
-        name: email.split("@")[0],
-        role: "ADMIN",
+        password: hashedPassword,
+        firstName: email.split("@")[0],
+        lastName: email.split("@")[1]?.split(".")[0] || "",
+        role: UserRole.OWNER,
         tenantId: tenant.id,
       },
     });

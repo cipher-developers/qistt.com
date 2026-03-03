@@ -16,17 +16,25 @@ export default async function OnboardingPage() {
     }),
     prisma.item.findMany({
       where: { tenantId: tenant?.id },
-      select: { id: true, name: true, sellingPrice: true },
+      select: { id: true, name: true },
     }),
   ]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Create Installment Plan</h1>
-        <p className="text-slate-600 mt-1">Set up a new installment plan for a customer</p>
+        <h1 className="text-3xl font-bold text-slate-900">
+          Create Installment Plan
+        </h1>
+        <p className="text-slate-600 mt-1">
+          Set up a new installment plan for a customer
+        </p>
       </div>
-      <OnboardingForm tenantId={tenant?.id} customers={customers} items={items} />
+      <OnboardingForm
+        tenantId={tenant?.id}
+        customers={customers}
+        items={items}
+      />
     </div>
   );
 }
