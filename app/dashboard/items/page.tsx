@@ -58,7 +58,7 @@ export default async function ItemsPage() {
                   <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 text-sm text-slate-900 font-medium">{item.name}</td>
                     <td className="px-6 py-4 text-sm text-slate-600">{item.category?.name || "-"}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">${item.sellingPrice.toFixed(2)}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">${(item.sellingPrice || 0).toFixed(2)}</td>
                     <td className="px-6 py-4 text-sm text-slate-600">{item.sku || "-"}</td>
                     <td className="px-6 py-4 text-sm space-x-2 flex items-center gap-2">
                       <Button variant="outline" size="sm" className="gap-2">

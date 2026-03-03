@@ -13,7 +13,7 @@ export default async function DashboardPage() {
       prisma.customer.count({ where: { tenantId: tenant?.id } }),
       prisma.item.count({ where: { tenantId: tenant?.id } }),
       prisma.category.count({ where: { tenantId: tenant?.id } }),
-      // prisma.transaction.count({ where: { installment: { installmentPlan: { tenantId: tenant?.id } } } }),
+      prisma.transaction.count({ where: { tenantId: tenant?.id } }),
     ]);
 
   const stats = [

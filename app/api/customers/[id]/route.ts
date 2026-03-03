@@ -4,8 +4,9 @@ import prisma from "@/lib/prisma";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const tenant = await getCurrentTenant();
     if (!tenant) {
@@ -14,7 +15,7 @@ export async function DELETE(
 
     const customer = await prisma.customer.delete({
       where: {
-        id: params.id,
+        id,
         tenantId: tenant.id,
       },
     });
@@ -31,8 +32,9 @@ export async function DELETE(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const tenant = await getCurrentTenant();
     if (!tenant) {
@@ -41,7 +43,7 @@ export async function GET(
 
     const customer = await prisma.customer.findFirst({
       where: {
-        id: params.id,
+        id,
         tenantId: tenant.id,
       },
     });
