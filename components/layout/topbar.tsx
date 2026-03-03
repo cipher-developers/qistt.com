@@ -7,22 +7,22 @@ export function TopBar() {
   const { data: session } = useSession();
 
   return (
-    <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-      <div>
-        <h2 className="text-lg font-semibold text-slate-900">
+    <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+      <div className="min-w-0">
+        <h2 className="text-base sm:text-lg font-semibold text-slate-900 truncate">
           {session?.user?.name || "Dashboard"}
         </h2>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs sm:text-sm text-slate-600 truncate">
           {(session?.user as any)?.tenantName || "Tenant"}
         </p>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
         <button className="p-2 hover:bg-slate-100 rounded-md transition-colors">
-          <Bell size={20} className="text-slate-600" />
+          <Bell size={18} className="text-slate-600 sm:w-5 sm:h-5" />
         </button>
         <button className="p-2 hover:bg-slate-100 rounded-md transition-colors">
-          <User size={20} className="text-slate-600" />
+          <User size={18} className="text-slate-600 sm:w-5 sm:h-5" />
         </button>
       </div>
     </header>

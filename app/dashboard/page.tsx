@@ -40,29 +40,29 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">
+      <div className="space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
           Welcome back, {tenant?.name}!
         </h1>
-        <p className="text-slate-600 mt-1">Here's your business overview</p>
+        <p className="text-sm sm:text-base text-slate-600">Here's your business overview</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label} className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-600">
+            <Card key={stat.label} className="p-4 sm:p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm font-medium text-slate-600 truncate">
                     {stat.label}
                   </p>
-                  <p className="text-3xl font-bold text-slate-900 mt-2">
+                  <p className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1 sm:mt-2">
                     {stat.value}
                   </p>
                 </div>
-                <div className={`${stat.color} p-3 rounded-lg`}>
-                  <Icon size={24} className="text-white" />
+                <div className={`${stat.color} p-2 sm:p-3 rounded-lg flex-shrink-0`}>
+                  <Icon size={20} className="text-white" />
                 </div>
               </div>
             </Card>
@@ -70,53 +70,53 @@ export default async function DashboardPage() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <Card className="p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-semibold text-slate-900 mb-3 sm:mb-4">
             Quick Actions
           </h2>
           <div className="space-y-2">
             <a
               href="/dashboard/customers"
-              className="block p-3 hover:bg-slate-50 rounded-md transition-colors text-slate-700"
+              className="block p-2 sm:p-3 hover:bg-slate-50 rounded-md transition-colors text-sm sm:text-base text-slate-700"
             >
               + Add New Customer
             </a>
             <a
               href="/dashboard/items"
-              className="block p-3 hover:bg-slate-50 rounded-md transition-colors text-slate-700"
+              className="block p-2 sm:p-3 hover:bg-slate-50 rounded-md transition-colors text-sm sm:text-base text-slate-700"
             >
               + Add New Item
             </a>
             <a
               href="/dashboard/onboarding"
-              className="block p-3 hover:bg-slate-50 rounded-md transition-colors text-slate-700"
+              className="block p-2 sm:p-3 hover:bg-slate-50 rounded-md transition-colors text-sm sm:text-base text-slate-700"
             >
               + Create Installment Plan
             </a>
           </div>
         </Card>
 
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">
+        <Card className="p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-semibold text-slate-900 mb-3 sm:mb-4">
             System Status
           </h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-700">Database</span>
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm sm:text-base text-slate-700 truncate">Database</span>
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
                 Connected
               </span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-700">Tenant</span>
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm sm:text-base text-slate-700 truncate">Tenant</span>
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
                 Active
               </span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-700">User Role</span>
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm sm:text-base text-slate-700 truncate">User Role</span>
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 flex-shrink-0">
                 Admin
               </span>
             </div>
