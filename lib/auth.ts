@@ -8,6 +8,10 @@ export const authConfig: NextAuthConfig = {
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
+      credentials: {
+        email: { label: "Email", type: "email", placeholder: "admin@kistly.local" },
+        password: { label: "Password", type: "password" },
+      },
       async authorize(credentials) {
         console.log("[v0] authorize called with email:", credentials?.email);
         if (!credentials?.email || !credentials?.password) {
@@ -81,7 +85,8 @@ export const authConfig: NextAuthConfig = {
 
 import NextAuth from "next-auth";
 
-const { auth: authFn, handlers } = NextAuth(authConfig);
+const nextAuth = NextAuth(authConfig);
 
-export const auth = authFn;
-export const { GET, POST } = handlers;
+export const auth = nextAuth.auth;
+export const GET = nextAuth.handlers.GET;
+export const POST = nextAuth.handlers.POST;
