@@ -1,7 +1,6 @@
-import { auth } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname, hostname } = request.nextUrl;
 
   // Extract subdomain
@@ -15,22 +14,6 @@ export async function middleware(request: NextRequest) {
   // Store subdomain in headers for route handlers
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-subdomain", subdomain);
-
-  // Allow login page without authentication
-  if (pathname === "/login" || pathname.startsWith("/api/")) {
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
-  }
-
-  // For other pages, check authentication using auth()
-  const session = await auth();
-  
-  if (!session?.user) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
 
   return NextResponse.next({
     request: {

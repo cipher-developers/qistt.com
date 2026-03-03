@@ -1,11 +1,11 @@
-import { getCurrentUser, getCurrentTenant } from "@/lib/auth-helper";
+import { requireAuth, requireTenant } from "@/lib/auth-helper";
 import prisma from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
 import { BarChart3, Users, Package, FileText } from "lucide-react";
 
 export default async function DashboardPage() {
-  const user = await getCurrentUser();
-  const tenant = await getCurrentTenant();
+  await requireAuth();
+  const tenant = await requireTenant();
 
   // Fetch dashboard stats
   const [customerCount, itemCount, categoryCount, transactionCount] = await Promise.all([
@@ -25,7 +25,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Welcome back, {user?.name}!</h1>
+        <h1 className="text-3xl font-bold text-slate-900">Welcome back, {tenant?.name}!</h1>
         <p className="text-slate-600 mt-1">Here's your business overview</p>
       </div>
 
@@ -82,7 +82,7 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between">
               <span className="text-slate-700">User Role</span>
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {user?.role || "User"}
+                Admin
               </span>
             </div>
           </div>
