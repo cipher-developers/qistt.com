@@ -14,36 +14,34 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface Installment {
+interface Plan {
   id: string;
-  installmentNumber: number;
-  amount: number;
-  dueDate: string;
-  installmentPlan: {
-    customer: { name: string };
-    item: { name: string };
-  };
+  customerId: string;
+  itemId: string;
+  sellingPrice: number;
+  customer: { id: string; name: string };
+  item: { id: string; name: string };
 }
 
 export function TransactionForm({
   tenantId,
-  installments,
+  plans,
 }: {
   tenantId?: string;
-  installments: Installment[];
+  plans: Plan[];
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
   const [formData, setFormData] = useState({
-    installmentId: "",
+    planId: "",
+    customerId: "",
     amount: "",
-    receiptNumber: "",
-    notes: "",
+    description: "",
   });
 
-  const selectedInstallment = installments.find(
-    (i) => i.id === formData.installmentId
+  const selectedPlan = plans.find(
+    (p) => p.id === formData.planId
   );
 
   async function handleSubmit(e: React.FormEvent) {
@@ -56,9 +54,10 @@ export function TransactionForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
+          planId: formData.planId,
+          customerId: selectedPlan?.customerId,
           amount: parseFloat(formData.amount),
-          tenantId,
+          description: formData.description || null,
         }),
       });
 
@@ -79,47 +78,47 @@ export function TransactionForm({
     <Card className="p-6">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <Label htmlFor="installment" className="text-slate-700 font-medium">
-            Select Installment *
+          <Label htmlFor="plan" className="text-slate-700 font-medium">
+            Select Installment Plan *
           </Label>
           <Select
-            value={formData.installmentId}
+            value={formData.planId}
             onValueChange={(value) => {
-              const inst = installments.find((i) => i.id === value);
+              const plan = plans.find((p) => p.id === value);
               setFormData({
                 ...formData,
-                installmentId: value,
-                amount: inst?.amount.toString() || "",
+                planId: value,
+                customerId: plan?.customerId || "",
               });
             }}
           >
             <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Select an installment" />
+              <SelectValue placeholder="Select an installment plan" />
             </SelectTrigger>
             <SelectContent>
-              {installments.map((inst) => (
-                <SelectItem key={inst.id} value={inst.id}>
-                  {inst.installmentPlan.customer.name} - {inst.installmentPlan.item.name} (Installment #{inst.installmentNumber}) - ${inst.amount.toFixed(2)}
+              {plans.map((plan) => (
+                <SelectItem key={plan.id} value={plan.id}>
+                  {plan.customer.name} - {plan.item.name} - ${plan.sellingPrice.toFixed(2)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
-        {selectedInstallment && (
+        {selectedPlan && (
           <div className="bg-slate-50 p-4 rounded-md space-y-2">
             <div className="flex justify-between">
               <span className="text-slate-700">Customer:</span>
-              <span className="font-medium">{selectedInstallment.installmentPlan.customer.name}</span>
+              <span className="font-medium">{selectedPlan.customer.name}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-700">Item:</span>
-              <span className="font-medium">{selectedInstallment.installmentPlan.item.name}</span>
+              <span className="font-medium">{selectedPlan.item.name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-700">Due Date:</span>
+              <span className="text-slate-700">Plan Amount:</span>
               <span className="font-medium">
-                {new Date(selectedInstallment.dueDate).toLocaleDateString()}
+                ${selectedPlan.sellingPrice.toFixed(2)}
               </span>
             </div>
           </div>
@@ -141,29 +140,16 @@ export function TransactionForm({
         </div>
 
         <div>
-          <Label htmlFor="receiptNumber" className="text-slate-700 font-medium">
-            Receipt Number
+          <Label htmlFor="description" className="text-slate-700 font-medium">
+            Description
           </Label>
           <Input
-            id="receiptNumber"
-            placeholder="RCP-001"
-            value={formData.receiptNumber}
+            id="description"
+            placeholder="Payment description"
+            value={formData.description}
             onChange={(e) =>
-              setFormData({ ...formData, receiptNumber: e.target.value })
+              setFormData({ ...formData, description: e.target.value })
             }
-            className="mt-1"
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="notes" className="text-slate-700 font-medium">
-            Notes
-          </Label>
-          <Input
-            id="notes"
-            placeholder="Payment notes"
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             className="mt-1"
           />
         </div>

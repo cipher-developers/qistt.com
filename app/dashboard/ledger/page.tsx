@@ -15,30 +15,31 @@ export default async function CustomerLedgerPage() {
       installmentPlans: {
         include: {
           item: true,
-          installments: {
-            include: {
-              transactions: true,
-            },
-          },
         },
       },
+    },
+  });
+
+  // Get all transactions for this tenant
+  const transactions = await prisma.transaction.findMany({
+    where: { tenantId: tenant?.id },
+    select: {
+      planId: true,
+      amount: true,
     },
   });
 
   // Calculate ledger for each customer
   const ledger = customers.map((customer) => {
     let totalAmount = 0;
-    let totalPaid = 0;
+    let totalPaid = customer.installmentPlans.reduce((sum, plan) => sum + (plan.advancePaid || 0), 0);
 
     customer.installmentPlans.forEach((plan) => {
       totalAmount += plan.sellingPrice;
-      totalPaid += plan.advancePaid;
 
-      plan.installments.forEach((installment) => {
-        installment.transactions.forEach((transaction) => {
-          totalPaid += transaction.amount;
-        });
-      });
+      // Add all transaction amounts for this plan
+      const planTransactions = transactions.filter((t) => t.planId === plan.id);
+      totalPaid += planTransactions.reduce((sum, t) => sum + t.amount, 0);
     });
 
     return {

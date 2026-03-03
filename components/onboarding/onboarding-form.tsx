@@ -23,7 +23,7 @@ interface Customer {
 interface Item {
   id: string;
   name: string;
-  sellingPrice: number;
+  sellingPrice: number | null;
 }
 
 export function OnboardingForm({

@@ -26,10 +26,25 @@ export function LoginForm() {
         redirect: false,
       });
 
-      if (!result?.ok) {
-        setError("Invalid email or password");
+      if (!result) {
+        setError("Unable to sign in right now. Please try again.");
+        return;
+      }
+
+      if (result.error) {
+        if (result.error === "CredentialsSignin") {
+          setError("Invalid email or password");
+        } else {
+          setError("Sign in failed. Please try again.");
+        }
+        return;
+      }
+
+      if (result.ok || result.url) {
+        router.replace("/dashboard");
+        router.refresh();
       } else {
-        router.push("/dashboard");
+        setError("Invalid email or password");
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
@@ -41,7 +56,9 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <Label htmlFor="email" className="text-slate-700">Email</Label>
+        <Label htmlFor="email" className="text-slate-700">
+          Email
+        </Label>
         <Input
           id="email"
           type="email"
@@ -53,7 +70,9 @@ export function LoginForm() {
         />
       </div>
       <div>
-        <Label htmlFor="password" className="text-slate-700">Password</Label>
+        <Label htmlFor="password" className="text-slate-700">
+          Password
+        </Label>
         <Input
           id="password"
           type="password"
