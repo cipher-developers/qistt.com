@@ -54,7 +54,7 @@ export default function LandingPage() {
               </Button>
             </a>
             <a href="#features">
-              <Button variant="outline" className="border-slate-500 text-slate-200 hover:bg-slate-800 px-8 py-3 text-lg h-auto w-full sm:w-auto">
+              <Button variant="outline" className="border-slate-500 text-slate-900 hover:bg-slate-100 px-8 py-3 text-lg h-auto w-full sm:w-auto">
                 Learn More
               </Button>
             </a>

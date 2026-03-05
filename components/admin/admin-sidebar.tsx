@@ -46,8 +46,16 @@ export function AdminSidebar() {
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="p-6 border-b border-slate-700">
-          <h1 className="text-2xl font-bold">Kistly Admin</h1>
-          <p className="text-xs text-slate-400 mt-1">System Administration</p>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded flex items-center justify-center">
+              <span className="text-white font-bold text-sm">A</span>
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Kistly</h1>
+              <p className="text-xs text-purple-300 font-semibold">PLATFORM ADMIN</p>
+            </div>
+          </div>
+          <p className="text-xs text-slate-400">System Administration</p>
         </div>
 
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
