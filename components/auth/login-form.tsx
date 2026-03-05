@@ -41,7 +41,8 @@ export function LoginForm() {
       }
 
       if (result.ok || result.url) {
-        router.replace("/dashboard");
+        // Let server-side login page decide destination by role.
+        router.replace("/login");
         router.refresh();
       } else {
         setError("Invalid email or password");

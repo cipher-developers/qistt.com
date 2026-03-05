@@ -29,7 +29,8 @@ export default async function LoginPage() {
   const session = await auth();
   
   if (session?.user) {
-    redirect("/dashboard");
+    const role = (session.user as any)?.role;
+    redirect(role === "ADMIN" ? "/admin" : "/dashboard");
   }
 
   const headersList = await headers();
@@ -45,7 +46,7 @@ export default async function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+    <main className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 to-slate-100">
       <div className="w-full max-w-md mx-4">
         <div className="bg-white rounded-lg shadow-lg p-8">
           {tenant ? (
@@ -66,7 +67,7 @@ export default async function LoginPage() {
           ) : (
             <>
               <div className="text-center mb-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-linear-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
                   <span className="text-white font-bold text-2xl">K</span>
                 </div>
                 <h1 className="text-3xl font-bold text-slate-900">Kistly</h1>

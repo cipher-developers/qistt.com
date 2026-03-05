@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/topbar";
 import { requireAuth } from "@/lib/auth-helper";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Dashboard - Kistly",
@@ -11,7 +12,11 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireAuth();
+  const user = await requireAuth();
+
+  if ((user as any)?.role === "ADMIN") {
+    redirect("/admin");
+  }
 
   return (
     <div className="flex h-screen bg-slate-50">
