@@ -1,13 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Check, ArrowRight, Zap, Users, BarChart3, Shield } from "lucide-react";
-import Link from "next/link";
+import { Check, ArrowRight, Zap, Users, BarChart3, Shield, Phone, Mail } from "lucide-react";
+import { ContactForm } from "@/components/landing/contact-form";
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Navigation */}
-      <nav className="border-b border-slate-700 bg-slate-900/50 backdrop-blur">
+      <nav className="border-b border-slate-700 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
@@ -15,12 +15,18 @@ export default function LandingPage() {
             </div>
             <span className="text-white font-bold text-xl">Kistly</span>
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="outline" className="border-slate-600 text-slate-200 hover:bg-slate-800">
-                Sign In
+          <div className="flex items-center gap-3 sm:gap-4">
+            <a href="tel:+1234567890" className="flex items-center gap-2">
+              <Button variant="outline" className="border-slate-600 text-slate-200 hover:bg-slate-800 gap-2">
+                <Phone size={18} />
+                <span className="hidden sm:inline">Call Us</span>
               </Button>
-            </Link>
+            </a>
+            <a href="#contact" className="hidden sm:block">
+              <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white">
+                Contact Us
+              </Button>
+            </a>
           </div>
         </div>
       </nav>
@@ -41,17 +47,17 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Link href="/login">
+            <a href="#contact">
               <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-3 text-lg h-auto flex items-center gap-2 w-full sm:w-auto">
                 Get Started
                 <ArrowRight size={20} />
               </Button>
-            </Link>
-            <Link href="#features">
+            </a>
+            <a href="#features">
               <Button variant="outline" className="border-slate-500 text-slate-200 hover:bg-slate-800 px-8 py-3 text-lg h-auto w-full sm:w-auto">
                 Learn More
               </Button>
-            </Link>
+            </a>
           </div>
         </div>
       </section>
@@ -108,6 +114,67 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Benefits Section */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Why Choose Kistly?</h2>
+          <p className="text-slate-400 text-lg">Trusted by businesses across different industries</p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8">
+          {[
+            { title: "Reduce Payment Defaults", description: "Automated reminders and payment tracking reduce missed payments by up to 80%" },
+            { title: "Improve Cash Flow", description: "Better visibility into customer payments helps optimize your business cash flow" },
+            { title: "Save Time & Resources", description: "Automate manual payment tracking and reporting tasks" },
+            { title: "Scale Your Business", description: "Handle thousands of installment plans without additional overhead" },
+            { title: "24/7 Customer Support", description: "Dedicated support team ready to help your business succeed" },
+            { title: "Data Security", description: "Bank-level security with encrypted data and regular backups" },
+          ].map((benefit, idx) => (
+            <div key={idx} className="flex gap-4">
+              <Check className="w-6 h-6 text-green-400 flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-2">{benefit.title}</h3>
+                <p className="text-slate-400">{benefit.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section id="contact" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Get in Touch</h2>
+          <p className="text-slate-400 text-lg">Have questions? Our team is here to help. Contact us today.</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8 mb-16">
+          <Card className="bg-slate-800/50 border-slate-700 p-6 text-center">
+            <Phone className="w-10 h-10 text-blue-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">Call Us</h3>
+            <a href="tel:+1234567890" className="text-slate-300 hover:text-blue-400 transition-colors">
+              +1 (234) 567-890
+            </a>
+          </Card>
+
+          <Card className="bg-slate-800/50 border-slate-700 p-6 text-center">
+            <Mail className="w-10 h-10 text-blue-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">Email Us</h3>
+            <a href="mailto:hello@kistly.com" className="text-slate-300 hover:text-blue-400 transition-colors">
+              hello@kistly.com
+            </a>
+          </Card>
+
+          <Card className="bg-slate-800/50 border-slate-700 p-6 text-center">
+            <Zap className="w-10 h-10 text-blue-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">Quick Response</h3>
+            <p className="text-slate-300">We respond to inquiries within 24 hours</p>
+          </Card>
+        </div>
+
+        <ContactForm />
+      </section>
+
       {/* CTA Section */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
         <Card className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 border-blue-500/30 p-12">
@@ -117,18 +184,52 @@ export default function LandingPage() {
           <p className="text-slate-300 text-lg mb-8">
             Join businesses already using Kistly to streamline their operations.
           </p>
-          <Link href="/login">
+          <a href="#contact">
             <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-3 text-lg h-auto">
               Start Your Free Trial
             </Button>
-          </Link>
+          </a>
         </Card>
       </section>
 
       {/* Footer */}
       <footer className="border-t border-slate-700 bg-slate-900/50 mt-20 py-12">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-slate-400">
-          <p>&copy; 2024 Kistly. All rights reserved. | Professional Installment Management Platform</p>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h3 className="text-white font-semibold mb-4">Product</h3>
+              <ul className="space-y-2 text-slate-400">
+                <li><a href="#features" className="hover:text-blue-400 transition-colors">Features</a></li>
+                <li><a href="#" className="hover:text-blue-400 transition-colors">Pricing</a></li>
+                <li><a href="#" className="hover:text-blue-400 transition-colors">Security</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-white font-semibold mb-4">Company</h3>
+              <ul className="space-y-2 text-slate-400">
+                <li><a href="#" className="hover:text-blue-400 transition-colors">About</a></li>
+                <li><a href="#" className="hover:text-blue-400 transition-colors">Blog</a></li>
+                <li><a href="#contact" className="hover:text-blue-400 transition-colors">Contact</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-white font-semibold mb-4">Legal</h3>
+              <ul className="space-y-2 text-slate-400">
+                <li><a href="#" className="hover:text-blue-400 transition-colors">Privacy</a></li>
+                <li><a href="#" className="hover:text-blue-400 transition-colors">Terms</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-white font-semibold mb-4">Follow Us</h3>
+              <ul className="space-y-2 text-slate-400">
+                <li><a href="#" className="hover:text-blue-400 transition-colors">Twitter</a></li>
+                <li><a href="#" className="hover:text-blue-400 transition-colors">LinkedIn</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-slate-700 pt-8 text-center text-slate-400">
+            <p>&copy; 2024 Kistly. All rights reserved. | Professional Installment Management Platform</p>
+          </div>
         </div>
       </footer>
     </div>
