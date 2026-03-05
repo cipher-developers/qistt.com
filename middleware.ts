@@ -19,7 +19,7 @@ export function middleware(request: NextRequest) {
   }
 
   // If no subdomain and path is /login, redirect to landing
-  if (!subdomain && pathname === "/login") {
+  if (!subdomain && pathname === "/login" &&  parts[0] !== 'localhost') {
     return NextResponse.redirect(new URL("/", request.nextUrl));
   }
 
