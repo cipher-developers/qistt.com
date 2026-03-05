@@ -9,7 +9,8 @@ export function middleware(request: NextRequest) {
   let subdomain = "";
 
   if (normalizedHost.endsWith(".localhost")) {
-    subdomain = normalizedHost.replace(/\.localhost$/, "").split(".")[0] || "";
+    const localLabel = normalizedHost.replace(/\.localhost$/, "").split(".")[0] || "";
+    subdomain = localLabel === "www" ? "" : localLabel;
   } else if (parts.length > 2 && parts[0] !== "www") {
     subdomain = parts[0];
   }
