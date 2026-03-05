@@ -59,8 +59,8 @@ export function AdminSidebar() {
               </div>
             )}
             <div className="min-w-0">
-              <h1 className="text-lg font-bold truncate">{tenantName}</h1>
-              <p className="text-xs text-slate-400">Admin</p>
+              <h1 className="text-lg font-bold truncate">Kistly</h1>
+              <p className="text-xs text-slate-400">Platform Admin</p>
             </div>
           </div>
         </div>

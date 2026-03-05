@@ -2,6 +2,13 @@
 
 import { useSession } from "next-auth/react";
 import { Bell, User } from "lucide-react";
+import type { Session } from "next-auth";
+
+declare module "next-auth" {
+  interface User {
+    tenantName?: string;
+  }
+}
 
 export function AdminTopBar() {
   const { data: session } = useSession();
@@ -10,7 +17,7 @@ export function AdminTopBar() {
     <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
       <div className="min-w-0">
         <h2 className="text-base sm:text-lg font-semibold text-slate-900 truncate">
-          Administration
+          {session?.user?.tenantName || "Admin Dashboard"}
         </h2>
         <p className="text-xs sm:text-sm text-slate-600 truncate">
           {session?.user?.name || "Admin"}

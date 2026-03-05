@@ -30,6 +30,7 @@ const MENU_ITEMS = [
 export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  console.log(session)
   const tenantName = (session?.user as any)?.tenantName || "Kistly";
   const tenantLogo = (session?.user as any)?.tenantLogo;
 
