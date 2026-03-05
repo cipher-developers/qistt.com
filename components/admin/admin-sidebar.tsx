@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import { LayoutDashboard, Users, Building2, LogOut, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,9 @@ const ADMIN_MENU_ITEMS = [
 export function AdminSidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { data: session } = useSession();
+  const tenantName = (session?.user as any)?.tenantName || "Kistly";
+  const tenantLogo = (session?.user as any)?.tenantLogo;
 
   return (
     <>
@@ -46,17 +50,61 @@ export function AdminSidebar() {
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="p-6 border-b border-slate-700">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded flex items-center justify-center">
-              <span className="text-white font-bold text-sm">A</span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Kistly</h1>
-              <p className="text-xs text-purple-300 font-semibold">PLATFORM ADMIN</p>
+          <div className="flex items-center gap-3 mb-2">
+            {tenantLogo ? (
+              <img src={tenantLogo} alt={tenantName} className="h-10 w-10 object-contain rounded" />
+            ) : (
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-sm">{tenantName.charAt(0)}</span>
+              </div>
+            )}
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold truncate">{tenantName}</h1>
+              <p className="text-xs text-slate-400">Admin</p>
             </div>
           </div>
-          <p className="text-xs text-slate-400">System Administration</p>
         </div>
+
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          {ADMIN_MENU_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-md transition-colors",
+                  isActive
+                    ? "bg-slate-700 text-white"
+                    : "text-slate-300 hover:bg-slate-800"
+                )}
+              >
+                <Icon size={20} className="flex-shrink-0" />
+                <span className="text-sm font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="border-t border-slate-700 p-4">
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              signOut({ callbackUrl: "/login" });
+            }}
+            className="flex items-center gap-3 w-full px-4 py-3 text-slate-300 hover:bg-slate-800 rounded-md transition-colors text-sm font-medium"
+          >
+            <LogOut size={20} className="flex-shrink-0" />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+    </>
+  );
+}
 
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {ADMIN_MENU_ITEMS.map((item) => {
