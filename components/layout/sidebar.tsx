@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { 
   LayoutDashboard, 
   Users, 
@@ -28,12 +29,14 @@ const MENU_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const tenantName = (session?.user as any)?.tenantName || "Kistly";
 
   return (
     <aside className="w-full md:w-64 bg-slate-900 text-white flex flex-col h-full">
       <div className="p-4 sm:p-6 border-b border-slate-700">
-        <h1 className="text-xl sm:text-2xl font-bold">Kistly</h1>
-        <p className="text-xs text-slate-400 mt-1">Installment Manager</p>
+        <h1 className="text-xl sm:text-2xl font-bold">{tenantName}</h1>
+        <p className="text-xs text-slate-400 mt-1">Powered by Kistly</p>
       </div>
 
       <nav className="flex-1 p-3 sm:p-4 space-y-2 overflow-y-auto">
@@ -52,7 +55,7 @@ export function Sidebar() {
                   : "text-slate-300 hover:bg-slate-800"
               )}
             >
-              <Icon size={20} className="flex-shrink-0" />
+              <Icon size={20} className="shrink-0" />
               <span className="text-xs sm:text-sm font-medium">{item.label}</span>
             </Link>
           );
@@ -64,7 +67,7 @@ export function Sidebar() {
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="flex items-center gap-3 w-full px-3 sm:px-4 py-2 sm:py-3 text-slate-300 hover:bg-slate-800 rounded-md transition-colors text-xs sm:text-sm font-medium"
         >
-          <LogOut size={20} className="flex-shrink-0" />
+          <LogOut size={20} className="shrink-0" />
           Sign Out
         </button>
       </div>

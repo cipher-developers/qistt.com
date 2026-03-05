@@ -11,6 +11,18 @@ export function middleware(request: NextRequest) {
     subdomain = parts[0];
   }
 
+  // Route based on subdomain presence
+  // If subdomain exists, always redirect to /login with tenant context
+  if (subdomain && subdomain !== "www" && pathname !== "/login") {
+    // Subdomain requests without /login path get redirected to /login
+    return NextResponse.redirect(new URL(`/login`, request.nextUrl));
+  }
+
+  // If no subdomain and path is /login, redirect to landing
+  if (!subdomain && pathname === "/login" &&  parts[0] !== 'localhost') {
+    return NextResponse.redirect(new URL("/", request.nextUrl));
+  }
+
   // Store subdomain in headers for route handlers
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-subdomain", subdomain);
@@ -24,6 +36,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api).*)",
   ],
 };
+

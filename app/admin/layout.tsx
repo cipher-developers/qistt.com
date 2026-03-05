@@ -1,32 +1,27 @@
-import { Sidebar } from "@/components/layout/sidebar";
-import { TopBar } from "@/components/layout/topbar";
-import { requireAuth } from "@/lib/auth-helper";
-import { redirect } from "next/navigation";
+import { requireAdminAuth } from "@/lib/admin-helper";
+import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { AdminTopBar } from "@/components/admin/admin-topbar";
 
 export const metadata = {
-  title: "Dashboard - Kistly",
+  title: "Admin - Kistly",
 };
 
-export default async function DashboardLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await requireAuth();
-
-  if ((user as any)?.role === "ADMIN") {
-    redirect("/admin");
-  }
+  await requireAdminAuth();
 
   return (
     <div className="flex h-screen bg-slate-50">
       {/* Desktop Sidebar - hidden on mobile, visible on md and up */}
       <div className="hidden md:flex">
-        <Sidebar />
+        <AdminSidebar />
       </div>
       
       <div className="flex-1 flex flex-col overflow-hidden w-full">
-        <TopBar />
+        <AdminTopBar />
         <main className="flex-1 overflow-auto">
           <div className="p-4 sm:p-6 max-w-full">
             {children}
