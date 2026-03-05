@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/admin-helper";
 import Link from "next/link";
-import { Edit, Plus, notFound } from "lucide-react";
+import { Edit, Plus } from "lucide-react";
 import { TenantUserDeleteButton } from "@/components/admin/tenant-user-delete-button";
 import { ArrowLeft } from "lucide-react";
+import { notFound } from "next/navigation";
 
 export default async function TenantUsersPage({
   params,
