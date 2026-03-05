@@ -55,7 +55,7 @@ export function Sidebar() {
                   : "text-slate-300 hover:bg-slate-800"
               )}
             >
-              <Icon size={20} className="flex-shrink-0" />
+              <Icon size={20} className="shrink-0" />
               <span className="text-xs sm:text-sm font-medium">{item.label}</span>
             </Link>
           );
@@ -67,43 +67,7 @@ export function Sidebar() {
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="flex items-center gap-3 w-full px-3 sm:px-4 py-2 sm:py-3 text-slate-300 hover:bg-slate-800 rounded-md transition-colors text-xs sm:text-sm font-medium"
         >
-          <LogOut size={20} className="flex-shrink-0" />
-          Sign Out
-        </button>
-      </div>
-    </aside>
-  );
-}
-
-      <nav className="flex-1 p-3 sm:p-4 space-y-2 overflow-y-auto">
-        {MENU_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
-          
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-md transition-colors",
-                isActive
-                  ? "bg-slate-700 text-white"
-                  : "text-slate-300 hover:bg-slate-800"
-              )}
-            >
-              <Icon size={20} className="flex-shrink-0" />
-              <span className="text-xs sm:text-sm font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="border-t border-slate-700 p-3 sm:p-4">
-        <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="flex items-center gap-3 w-full px-3 sm:px-4 py-2 sm:py-3 text-slate-300 hover:bg-slate-800 rounded-md transition-colors text-xs sm:text-sm font-medium"
-        >
-          <LogOut size={20} className="flex-shrink-0" />
+          <LogOut size={20} className="shrink-0" />
           Sign Out
         </button>
       </div>

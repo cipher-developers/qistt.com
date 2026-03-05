@@ -102,7 +102,7 @@ export function MobileNav() {
                     : "text-slate-300 hover:bg-slate-800"
                 )}
               >
-                <Icon size={20} className="flex-shrink-0" />
+                <Icon size={20} className="shrink-0" />
                 <span className="text-sm font-medium">{item.label}</span>
               </Link>
             );
@@ -118,50 +118,7 @@ export function MobileNav() {
             }}
             className="flex items-center gap-3 w-full px-4 py-3 text-slate-300 hover:bg-slate-800 rounded-md transition-colors text-sm font-medium"
           >
-            <LogOut size={20} className="flex-shrink-0" />
-            Sign Out
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {MENU_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={handleClose}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-md transition-colors",
-                  isActive
-                    ? "bg-slate-700 text-white"
-                    : "text-slate-300 hover:bg-slate-800"
-                )}
-              >
-                <Icon size={20} className="flex-shrink-0" />
-                <span className="text-sm font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Sign Out */}
-        <div className="border-t border-slate-700 p-4">
-          <button
-            onClick={() => {
-              handleClose();
-              signOut({ callbackUrl: "/login" });
-            }}
-            className="flex items-center gap-3 w-full px-4 py-3 text-slate-300 hover:bg-slate-800 rounded-md transition-colors text-sm font-medium"
-          >
-            <LogOut size={20} className="flex-shrink-0" />
+            <LogOut size={20} className="shrink-0" />
             Sign Out
           </button>
         </div>
