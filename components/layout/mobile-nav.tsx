@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   Users,
@@ -32,6 +33,8 @@ const MENU_ITEMS = [
 export function MobileNav() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const tenantName = (session?.user as any)?.tenantName || "Kistly";
 
   const handleClose = () => setIsOpen(false);
 
@@ -69,8 +72,8 @@ export function MobileNav() {
         {/* Header */}
         <div className="p-6 border-b border-slate-700 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Kistly</h1>
-            <p className="text-xs text-slate-400 mt-1">Installment Manager</p>
+            <h1 className="text-2xl font-bold">{tenantName}</h1>
+            <p className="text-xs text-slate-400 mt-1">Powered by Kistly</p>
           </div>
           <button
             onClick={handleClose}
@@ -80,6 +83,49 @@ export function MobileNav() {
             <X size={20} className="text-slate-300" />
           </button>
         </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          {MENU_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={handleClose}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-md transition-colors",
+                  isActive
+                    ? "bg-slate-700 text-white"
+                    : "text-slate-300 hover:bg-slate-800"
+                )}
+              >
+                <Icon size={20} className="flex-shrink-0" />
+                <span className="text-sm font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Sign Out */}
+        <div className="border-t border-slate-700 p-4">
+          <button
+            onClick={() => {
+              handleClose();
+              signOut({ callbackUrl: "/login" });
+            }}
+            className="flex items-center gap-3 w-full px-4 py-3 text-slate-300 hover:bg-slate-800 rounded-md transition-colors text-sm font-medium"
+          >
+            <LogOut size={20} className="flex-shrink-0" />
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
