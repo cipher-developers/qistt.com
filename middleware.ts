@@ -21,14 +21,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(`/login`, request.nextUrl));
   }
 
-  // If no subdomain and path is /login, redirect to landing (except local hosts).
-  if (
-    !subdomain &&
-    pathname === "/login" &&
-    normalizedHost !== "localhost" &&
-    normalizedHost !== "127.0.0.1" &&
-    normalizedHost !== "[::1]"
-  ) {
+  // If there is no subdomain and host is not local, always keep users on landing page.
+  const isLocalHost =
+    normalizedHost === "localhost" ||
+    normalizedHost === "127.0.0.1" ||
+    normalizedHost === "[::1]";
+
+  if (!subdomain && !isLocalHost && pathname !== "/") {
     return NextResponse.redirect(new URL("/", request.nextUrl));
   }
 
