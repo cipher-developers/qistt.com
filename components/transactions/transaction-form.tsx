@@ -41,7 +41,7 @@ export function TransactionForm({
   initialPlanId?: number;
   lockPlan?: boolean;
   submitLabel?: string;
-  onSuccess?: () => void;
+  onSuccess?: (createdTransaction: { id: number }) => void;
   onCancel?: () => void;
 }) {
   const [loading, setLoading] = useState(false);
@@ -99,10 +99,15 @@ export function TransactionForm({
         const data = await response.json();
         setError(data.error || "Failed to record transaction");
       } else {
+        const data = await response.json();
+        const createdTransaction = data?.transaction as { id: number };
+
         if (onSuccess) {
-          onSuccess();
+          onSuccess(createdTransaction);
         } else {
-          router.push("/dashboard/transactions");
+          router.push(
+            `/dashboard/transactions?transaction=${createdTransaction.id}`,
+          );
         }
       }
     } catch {

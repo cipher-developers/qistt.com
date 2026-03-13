@@ -9,7 +9,7 @@ export const metadata = {
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: { created?: string };
+  searchParams: { created?: string; transaction?: string };
 }) {
   const tenant = await getCurrentTenant();
 
@@ -37,6 +37,12 @@ export default async function TransactionsPage({
       transactions={transactions}
       activePlansCount={activePlansCount}
       justCreated={searchParams.created === "1"}
+      initialTransactionId={
+        searchParams.transaction &&
+        Number.isInteger(Number(searchParams.transaction))
+          ? Number(searchParams.transaction)
+          : undefined
+      }
     />
   );
 }

@@ -879,9 +879,11 @@ export function PlansView({
               initialPlanId={selectedPlan.id}
               lockPlan
               submitLabel="Record Transaction"
-              onSuccess={() => {
+              onSuccess={(createdTransaction) => {
                 setSelectedPlan(null);
-                router.refresh();
+                router.push(
+                  `/dashboard/transactions?transaction=${createdTransaction.id}`,
+                );
               }}
               onCancel={() => setSelectedPlan(null)}
             />

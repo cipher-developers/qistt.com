@@ -18,6 +18,7 @@ import { Card } from "@/components/ui/card";
 import { CustomerDetailSheet } from "@/components/customers/customer-detail-sheet";
 import { ItemDetailSheet } from "@/components/items/item-detail-sheet";
 import { EntityViewButton } from "@/components/shared/entity-view-button";
+import { TransactionDetailSheet } from "@/components/transactions/transaction-detail-sheet";
 import { formatCurrency } from "@/lib/utils";
 
 interface Transaction {
@@ -35,10 +36,12 @@ export function TransactionsView({
   transactions,
   activePlansCount,
   justCreated,
+  initialTransactionId,
 }: {
   transactions: Transaction[];
   activePlansCount: number;
   justCreated?: boolean;
+  initialTransactionId?: number;
 }) {
   const [search, setSearch] = useState("");
   const [showBanner, setShowBanner] = useState(justCreated ?? false);
@@ -46,14 +49,18 @@ export function TransactionsView({
     null,
   );
   const [viewingItemId, setViewingItemId] = useState<number | null>(null);
+  const [viewingTransactionId, setViewingTransactionId] = useState<
+    number | null
+  >(initialTransactionId ?? null);
 
   useEffect(() => {
-    if (justCreated) {
+    if (justCreated || initialTransactionId) {
       const url = new URL(window.location.href);
       url.searchParams.delete("created");
+      url.searchParams.delete("transaction");
       window.history.replaceState({}, "", url.toString());
     }
-  }, [justCreated]);
+  }, [justCreated, initialTransactionId]);
 
   const totalPaid = transactions.reduce((sum, t) => sum + t.amount, 0);
   const now = new Date();
@@ -291,6 +298,9 @@ export function TransactionsView({
                     <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Date
                     </th>
+                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -345,6 +355,12 @@ export function TransactionsView({
                       <td className="px-5 py-3.5 text-right text-sm text-slate-500">
                         {formatDate(t.transactionDate)}
                       </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <EntityViewButton
+                          label={`transaction ${t.id}`}
+                          onClick={() => setViewingTransactionId(t.id)}
+                        />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -388,6 +404,12 @@ export function TransactionsView({
                       </div>
                     </div>
                     <div className="shrink-0 text-right">
+                      <div className="mb-1 flex justify-end">
+                        <EntityViewButton
+                          label={`transaction ${t.id}`}
+                          onClick={() => setViewingTransactionId(t.id)}
+                        />
+                      </div>
                       <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-sm font-bold text-green-700">
                         {formatCurrency(t.amount)}
                       </span>
@@ -436,6 +458,16 @@ export function TransactionsView({
         onOpenChange={(open) => {
           if (!open) {
             setViewingItemId(null);
+          }
+        }}
+      />
+
+      <TransactionDetailSheet
+        open={Boolean(viewingTransactionId)}
+        transactionId={viewingTransactionId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingTransactionId(null);
           }
         }}
       />
