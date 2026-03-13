@@ -16,6 +16,7 @@ export default async function CustomersPage() {
       name: true,
       email: true,
       phone: true,
+      cnic: true,
       address: true,
       createdAt: true,
       _count: { select: { installmentPlans: true } },

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentTenant } from "@/lib/auth-helper";
 import prisma from "@/lib/prisma";
 
+const CNIC_PATTERN = /^\d{5}-\d{7}-\d{1}$/;
+
 export async function POST(request: NextRequest) {
   try {
     const tenant = await getCurrentTenant();
@@ -9,10 +11,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, email, phone, address } = await request.json();
+    const { name, email, phone, cnic, address } = await request.json();
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    }
+
+    if (cnic && !CNIC_PATTERN.test(cnic)) {
+      return NextResponse.json(
+        { error: "CNIC must match the format 12345-1234567-1" },
+        { status: 400 }
+      );
     }
 
     const customer = await prisma.customer.create({
@@ -20,6 +29,7 @@ export async function POST(request: NextRequest) {
         name,
         email: email || null,
         phone: phone || null,
+        cnic: cnic || null,
         address: address || null,
         tenantId: tenant.id,
       },

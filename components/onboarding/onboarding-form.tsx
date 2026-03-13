@@ -155,7 +155,7 @@ export function OnboardingForm({
         const data = await response.json();
         setError(data.error || "Failed to create plan");
       } else {
-        router.push("/dashboard/transactions?created=1");
+        router.push("/dashboard/ledger?created=1");
       }
     } catch {
       setError("An error occurred");

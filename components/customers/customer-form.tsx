@@ -7,6 +7,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+function formatCnicInput(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 13);
+  const first = digits.slice(0, 5);
+  const second = digits.slice(5, 12);
+  const third = digits.slice(12, 13);
+
+  if (digits.length <= 5) {
+    return first;
+  }
+
+  if (digits.length <= 12) {
+    return `${first}-${second}`;
+  }
+
+  return `${first}-${second}-${third}`;
+}
+
 type CustomerFormProps = {
   tenantId?: string;
   mode?: "create" | "edit";
@@ -15,6 +32,7 @@ type CustomerFormProps = {
     name: string;
     email: string | null;
     phone: string | null;
+    cnic: string | null;
     address: string | null;
   };
   onSuccess?: () => void;
@@ -35,6 +53,7 @@ export function CustomerForm({
     name: customer?.name || "",
     email: customer?.email || "",
     phone: customer?.phone || "",
+    cnic: customer?.cnic || "",
     address: customer?.address || "",
   });
 
@@ -43,6 +62,7 @@ export function CustomerForm({
       name: customer?.name || "",
       email: customer?.email || "",
       phone: customer?.phone || "",
+      cnic: customer?.cnic || "",
       address: customer?.address || "",
     });
   }, [customer]);
@@ -74,7 +94,13 @@ export function CustomerForm({
         onSuccess?.();
 
         if (mode === "create") {
-          setFormData({ name: "", email: "", phone: "", address: "" });
+          setFormData({
+            name: "",
+            email: "",
+            phone: "",
+            cnic: "",
+            address: "",
+          });
         }
       }
     } catch (err) {
@@ -99,7 +125,7 @@ export function CustomerForm({
           className="mt-1 h-11 rounded-xl border-slate-200"
         />
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <div>
           <Label htmlFor="email" className="text-slate-700 font-medium">
             Email
@@ -126,6 +152,25 @@ export function CustomerForm({
             onChange={(e) =>
               setFormData({ ...formData, phone: e.target.value })
             }
+            className="mt-1 h-11 rounded-xl border-slate-200"
+          />
+        </div>
+        <div>
+          <Label htmlFor="cnic" className="text-slate-700 font-medium">
+            CNIC
+          </Label>
+          <Input
+            id="cnic"
+            inputMode="numeric"
+            placeholder="12345-1234567-1"
+            value={formData.cnic}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                cnic: formatCnicInput(e.target.value),
+              })
+            }
+            maxLength={15}
             className="mt-1 h-11 rounded-xl border-slate-200"
           />
         </div>

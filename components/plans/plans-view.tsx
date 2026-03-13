@@ -466,7 +466,7 @@ export function PlansView({
                       Total
                     </th>
                     <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Generated
+                      Paid
                     </th>
                     <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Pending
@@ -600,7 +600,7 @@ export function PlansView({
                         </p>
                       </div>
                       <div>
-                        <p className="text-slate-500">Generated</p>
+                        <p className="text-slate-500">Paid</p>
                         <p className="font-semibold text-emerald-600">
                           {formatCurrency(metrics.generatedRevenue)}
                         </p>
@@ -643,7 +643,7 @@ export function PlansView({
                     Total
                   </th>
                   <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Generated
+                    Paid
                   </th>
                   <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Pending

@@ -51,42 +51,56 @@ export async function POST(request: NextRequest) {
     const monthlyAmount =
       (sellingPriceValue - advancePaidValue) / monthsValue;
 
-    // Create installment plan
-    const plan = await prisma.installmentPlan.create({
-      data: {
-        customerId: customerIdValue,
-        itemId: itemIdValue,
-        sellingPrice: sellingPriceValue,
-        advancePaid: advancePaidValue,
-        months: monthsValue,
-        monthlyAmount: parseFloat(monthlyAmount.toFixed(2)),
-        startDate: new Date(),
-        tenantId: tenant.id,
-      },
-    });
-
-    // Generate installments
-    const installments = [];
-    const today = new Date();
-
-    for (let i = 0; i < monthsValue; i++) {
-      const dueDate = new Date(today);
-      dueDate.setMonth(dueDate.getMonth() + i + 1);
-      dueDate.setDate(1); // Due on 1st of each month
-
-      installments.push({
-        planId: plan.id,
-        installmentNumber: i + 1,
-        amount: parseFloat(monthlyAmount.toFixed(2)),
-        dueDate,
-        paidAmount: 0,
-        status: "pending",
+    const plan = await prisma.$transaction(async (tx) => {
+      const createdPlan = await tx.installmentPlan.create({
+        data: {
+          customerId: customerIdValue,
+          itemId: itemIdValue,
+          sellingPrice: sellingPriceValue,
+          advancePaid: 0,
+          months: monthsValue,
+          monthlyAmount: parseFloat(monthlyAmount.toFixed(2)),
+          startDate: new Date(),
+          tenantId: tenant.id,
+        },
       });
-    }
 
-    // Bulk create installments
-    await prisma.installment.createMany({
-      data: installments,
+      const installments = [];
+      const today = new Date();
+
+      for (let i = 0; i < monthsValue; i++) {
+        const dueDate = new Date(today);
+        dueDate.setMonth(dueDate.getMonth() + i + 1);
+        dueDate.setDate(1);
+
+        installments.push({
+          planId: createdPlan.id,
+          installmentNumber: i + 1,
+          amount: parseFloat(monthlyAmount.toFixed(2)),
+          dueDate,
+          paidAmount: 0,
+          status: "pending",
+        });
+      }
+
+      await tx.installment.createMany({
+        data: installments,
+      });
+
+      if (advancePaidValue > 0) {
+        await tx.transaction.create({
+          data: {
+            planId: createdPlan.id,
+            customerId: customerIdValue,
+            tenantId: tenant.id,
+            amount: advancePaidValue,
+            description: "Advance payment",
+            transactionDate: new Date(),
+          },
+        });
+      }
+
+      return createdPlan;
     });
 
     return NextResponse.json(

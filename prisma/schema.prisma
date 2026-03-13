@@ -47,6 +47,7 @@ model Customer {
   id        Int        @id @default(autoincrement())
   name      String
   phone     String
+  cnic      String?
   email     String?
   address   String?
   tenantId  String

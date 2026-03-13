@@ -28,6 +28,7 @@ type CustomerRecord = {
   name: string;
   email: string | null;
   phone: string | null;
+  cnic: string | null;
   address: string | null;
   createdAt: string | Date;
   _count: {
@@ -68,7 +69,13 @@ export function CustomersView({
     }
 
     return customers.filter((customer) =>
-      [customer.name, customer.email, customer.phone, customer.address]
+      [
+        customer.name,
+        customer.email,
+        customer.phone,
+        customer.cnic,
+        customer.address,
+      ]
         .filter(Boolean)
         .some((field) => field!.toLowerCase().includes(value)),
     );
@@ -110,7 +117,7 @@ export function CustomersView({
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search by name, email, phone, or address"
+                placeholder="Search by name, CNIC, email, phone, or address"
                 className="h-11 rounded-xl border-slate-200 bg-white pl-9"
               />
             </div>
@@ -237,7 +244,7 @@ export function CustomersView({
                         {customer.name}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
-                        Customer profile
+                        {customer.cnic || "No CNIC"}
                       </p>
                     </div>
                     <div className="space-y-1 text-sm text-slate-600">
@@ -290,6 +297,9 @@ export function CustomersView({
                       </p>
                       <p className="truncate text-base font-semibold text-slate-900">
                         {customer.name}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {customer.cnic || "No CNIC"}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
                         {customer.address || "No address added"}
