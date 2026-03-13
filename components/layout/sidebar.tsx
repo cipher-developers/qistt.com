@@ -11,7 +11,6 @@ import {
   Settings,
   LogOut,
   BarChart3,
-  UserCheck,
   Sparkles,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -19,11 +18,10 @@ import { cn } from "@/lib/utils";
 
 const MENU_ITEMS = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: BarChart3, label: "Plans", href: "/dashboard/ledger" },
-  { icon: Users, label: "Customers", href: "/dashboard/customers" },
   { icon: Package, label: "Items", href: "/dashboard/items" },
+  { icon: Users, label: "Customers", href: "/dashboard/customers" },
+  { icon: BarChart3, label: "Plans", href: "/dashboard/ledger" },
   { icon: FileText, label: "Transactions", href: "/dashboard/transactions" },
-  { icon: UserCheck, label: "Manage Users", href: "/dashboard/users" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ];
 

@@ -119,6 +119,10 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body {
+    @apply h-full overflow-hidden;
+  }
   body {
     @apply bg-background text-foreground;
   }
@@ -126,7 +130,7 @@
 
 @layer components {
   .dashboard-shell {
-    @apply relative flex min-h-screen overflow-hidden text-slate-900;
+    @apply relative flex h-dvh overflow-hidden text-slate-900;
   }
 
   .dashboard-sidebar-rail {
@@ -134,7 +138,7 @@
   }
 
   .dashboard-panel {
-    @apply relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden md:pl-72;
+    @apply relative z-10 flex h-full min-w-0 flex-1 flex-col overflow-hidden md:pl-72;
   }
 
   .dashboard-main {
