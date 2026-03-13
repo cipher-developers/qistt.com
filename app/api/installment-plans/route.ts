@@ -17,35 +17,59 @@ export async function POST(request: NextRequest) {
       months,
     } = await request.json();
 
-    if (!customerId || !itemId || !sellingPrice || !months) {
+    const customerIdValue = Number(customerId);
+    const itemIdValue = Number(itemId);
+    const sellingPriceValue = Number(sellingPrice);
+    const advancePaidValue = Number(advancePaid ?? 0);
+    const monthsValue = Number(months);
+
+    if (
+      !Number.isInteger(customerIdValue) ||
+      customerIdValue <= 0 ||
+      !Number.isInteger(itemIdValue) ||
+      itemIdValue <= 0 ||
+      !Number.isFinite(sellingPriceValue) ||
+      sellingPriceValue <= 0 ||
+      !Number.isInteger(monthsValue) ||
+      monthsValue <= 0 ||
+      !Number.isFinite(advancePaidValue) ||
+      advancePaidValue < 0
+    ) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
+    if (advancePaidValue > sellingPriceValue) {
+      return NextResponse.json(
+        { error: "Advance paid cannot be greater than selling price" },
+        { status: 400 }
+      );
+    }
+
+    const monthlyAmount =
+      (sellingPriceValue - advancePaidValue) / monthsValue;
+
     // Create installment plan
     const plan = await prisma.installmentPlan.create({
       data: {
-        customerId,
-        itemId,
-        sellingPrice: parseFloat(sellingPrice),
-        advancePaid: parseFloat(advancePaid) || 0,
-        months: parseInt(months),
-        monthlyAmount: parseFloat(((sellingPrice - (advancePaid || 0)) / months).toFixed(2)),
+        customerId: customerIdValue,
+        itemId: itemIdValue,
+        sellingPrice: sellingPriceValue,
+        advancePaid: advancePaidValue,
+        months: monthsValue,
+        monthlyAmount: parseFloat(monthlyAmount.toFixed(2)),
         startDate: new Date(),
         tenantId: tenant.id,
       },
     });
 
-    // Calculate monthly amount
-    const monthlyAmount = (sellingPrice - (advancePaid || 0)) / months;
-
     // Generate installments
     const installments = [];
     const today = new Date();
 
-    for (let i = 0; i < months; i++) {
+    for (let i = 0; i < monthsValue; i++) {
       const dueDate = new Date(today);
       dueDate.setMonth(dueDate.getMonth() + i + 1);
       dueDate.setDate(1); // Due on 1st of each month

@@ -44,7 +44,7 @@ model Tenant {
 }
 
 model Customer {
-  id        String     @id @default(cuid())
+  id        Int        @id @default(autoincrement())
   name      String
   phone     String
   email     String?
@@ -74,8 +74,9 @@ model Category {
 }
 
 model Item {
-  id         String   @id @default(cuid())
+  id         Int      @id @default(autoincrement())
   name       String
+  model      String?
   description String?
   sku        String?
   costPrice  Float?
@@ -93,10 +94,10 @@ model Item {
 }
 
 model InstallmentPlan {
-  id              String   @id @default(cuid())
-  customerId      String
+  id              Int      @id @default(autoincrement())
+  customerId      Int
   customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  itemId          String
+  itemId          Int
   item            Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
   tenantId        String
   tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -118,7 +119,7 @@ model InstallmentPlan {
 
 model Installment {
   id              String   @id @default(cuid())
-  planId          String
+  planId          Int
   plan            InstallmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
   installmentNumber Int
   dueDate         DateTime
@@ -133,10 +134,10 @@ model Installment {
 }
 
 model Transaction {
-  id              String   @id @default(cuid())
-  planId          String
+  id              Int      @id @default(autoincrement())
+  planId          Int
   plan            InstallmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
-  customerId      String
+  customerId      Int
   customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   tenantId        String
   tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)

@@ -9,11 +9,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, description, sellingPrice, costPrice, sku, categoryId } = await request.json();
+    const { name, model, description, sellingPrice, costPrice, sku, categoryId } = await request.json();
 
-    if (!name || !sellingPrice || !costPrice) {
+    if (!name || !categoryId || sellingPrice === undefined || costPrice === undefined) {
       return NextResponse.json(
-        { error: "Name, selling price, and cost price are required" },
+        { error: "Name, category, selling price, and cost price are required" },
         { status: 400 }
       );
     }
@@ -21,11 +21,12 @@ export async function POST(request: NextRequest) {
     const item = await prisma.item.create({
       data: {
         name,
+        model: model || null,
         description: description || null,
-        sellingPrice: parseFloat(sellingPrice),
-        costPrice: parseFloat(costPrice),
+        sellingPrice: Number(sellingPrice),
+        costPrice: Number(costPrice),
         sku: sku || null,
-        categoryId: categoryId || null,
+        categoryId,
         tenantId: tenant.id,
       },
       include: { category: true },

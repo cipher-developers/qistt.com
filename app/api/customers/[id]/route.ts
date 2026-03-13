@@ -7,6 +7,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const customerId = Number(id);
+
+  if (!Number.isInteger(customerId) || customerId <= 0) {
+    return NextResponse.json({ error: "Invalid customer id" }, { status: 400 });
+  }
   try {
     const tenant = await getCurrentTenant();
     if (!tenant) {
@@ -15,7 +20,7 @@ export async function DELETE(
 
     const customer = await prisma.customer.delete({
       where: {
-        id,
+        id: customerId,
         tenantId: tenant.id,
       },
     });
@@ -35,6 +40,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const customerId = Number(id);
+
+  if (!Number.isInteger(customerId) || customerId <= 0) {
+    return NextResponse.json({ error: "Invalid customer id" }, { status: 400 });
+  }
   try {
     const tenant = await getCurrentTenant();
     if (!tenant) {
@@ -43,7 +53,7 @@ export async function GET(
 
     const customer = await prisma.customer.findFirst({
       where: {
-        id,
+        id: customerId,
         tenantId: tenant.id,
       },
     });
@@ -59,6 +69,52 @@ export async function GET(
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to fetch customer" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const customerId = Number(id);
+
+  if (!Number.isInteger(customerId) || customerId <= 0) {
+    return NextResponse.json({ error: "Invalid customer id" }, { status: 400 });
+  }
+
+  try {
+    const tenant = await getCurrentTenant();
+    if (!tenant) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { name, email, phone, address } = await request.json();
+
+    if (!name) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    }
+
+    const customer = await prisma.customer.update({
+      where: {
+        id: customerId,
+        tenantId: tenant.id,
+      },
+      data: {
+        name,
+        email: email || null,
+        phone: phone || null,
+        address: address || null,
+      },
+    });
+
+    return NextResponse.json(customer);
+  } catch (error) {
+    console.error("Update customer error:", error);
+    return NextResponse.json(
+      { error: "Failed to update customer" },
       { status: 500 }
     );
   }

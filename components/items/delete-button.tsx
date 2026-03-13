@@ -1,34 +1,40 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-export function CustomerDeleteButton({
-  customerId,
+export function ItemDeleteButton({
+  itemId,
   compact = false,
 }: {
-  customerId: number;
+  itemId: number;
   compact?: boolean;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function handleDelete() {
-    if (!confirm("Are you sure you want to delete this customer?")) return;
+    if (!confirm("Are you sure you want to delete this item?")) {
+      return;
+    }
 
     setLoading(true);
+
     try {
-      const response = await fetch(`/api/customers/${customerId}`, {
+      const response = await fetch(`/api/items/${itemId}`, {
         method: "DELETE",
       });
 
       if (response.ok) {
         router.refresh();
+      } else {
+        const data = await response.json().catch(() => null);
+        alert(data?.error || "Failed to delete item");
       }
-    } catch (err) {
-      alert("Error deleting customer");
+    } catch {
+      alert("Error deleting item");
     } finally {
       setLoading(false);
     }

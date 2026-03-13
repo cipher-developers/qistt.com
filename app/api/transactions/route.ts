@@ -11,7 +11,18 @@ export async function POST(request: NextRequest) {
 
     const { planId, customerId, amount, description } = await request.json();
 
-    if (!planId || !customerId || !amount) {
+    const planIdValue = Number(planId);
+    const customerIdValue = Number(customerId);
+    const amountValue = Number(amount);
+
+    if (
+      !Number.isInteger(planIdValue) ||
+      planIdValue <= 0 ||
+      !Number.isInteger(customerIdValue) ||
+      customerIdValue <= 0 ||
+      !Number.isFinite(amountValue) ||
+      amountValue <= 0
+    ) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -21,7 +32,7 @@ export async function POST(request: NextRequest) {
     // Verify plan belongs to tenant
     const plan = await prisma.installmentPlan.findFirst({
       where: {
-        id: planId,
+        id: planIdValue,
         tenantId: tenant.id,
       },
     });
@@ -36,10 +47,10 @@ export async function POST(request: NextRequest) {
     // Create transaction
     const transaction = await prisma.transaction.create({
       data: {
-        planId,
-        customerId,
+        planId: planIdValue,
+        customerId: customerIdValue,
         tenantId: tenant.id,
-        amount: parseFloat(amount),
+        amount: amountValue,
         description: description || null,
         transactionDate: new Date(),
       },
