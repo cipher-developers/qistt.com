@@ -58,6 +58,58 @@ export async function GET(
         id: customerId,
         tenantId: tenant.id,
       },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        cnic: true,
+        email: true,
+        address: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            installmentPlans: true,
+            transactions: true,
+          },
+        },
+        installmentPlans: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            status: true,
+            sellingPrice: true,
+            advancePaid: true,
+            monthlyAmount: true,
+            months: true,
+            createdAt: true,
+            item: {
+              select: {
+                id: true,
+                name: true,
+                model: true,
+              },
+            },
+            transactions: {
+              select: {
+                id: true,
+                amount: true,
+              },
+            },
+          },
+        },
+        transactions: {
+          orderBy: { transactionDate: "desc" },
+          take: 8,
+          select: {
+            id: true,
+            amount: true,
+            description: true,
+            transactionDate: true,
+            planId: true,
+          },
+        },
+      },
     });
 
     if (!customer) {

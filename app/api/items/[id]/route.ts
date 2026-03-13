@@ -24,7 +24,53 @@ export async function GET(
                 id: itemId,
                 tenantId: tenant.id,
             },
-            include: { category: true },
+            select: {
+                id: true,
+                name: true,
+                model: true,
+                description: true,
+                sku: true,
+                costPrice: true,
+                sellingPrice: true,
+                createdAt: true,
+                updatedAt: true,
+                category: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        installmentPlans: true,
+                    },
+                },
+                installmentPlans: {
+                    orderBy: { createdAt: "desc" },
+                    select: {
+                        id: true,
+                        status: true,
+                        sellingPrice: true,
+                        advancePaid: true,
+                        monthlyAmount: true,
+                        months: true,
+                        createdAt: true,
+                        customer: {
+                            select: {
+                                id: true,
+                                name: true,
+                                phone: true,
+                            },
+                        },
+                        transactions: {
+                            select: {
+                                id: true,
+                                amount: true,
+                            },
+                        },
+                    },
+                },
+            },
         });
 
         if (!item) {

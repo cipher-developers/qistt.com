@@ -15,6 +15,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { CustomerDetailSheet } from "@/components/customers/customer-detail-sheet";
+import { ItemDetailSheet } from "@/components/items/item-detail-sheet";
+import { EntityViewButton } from "@/components/shared/entity-view-button";
 import { formatCurrency } from "@/lib/utils";
 
 interface Transaction {
@@ -39,6 +42,10 @@ export function TransactionsView({
 }) {
   const [search, setSearch] = useState("");
   const [showBanner, setShowBanner] = useState(justCreated ?? false);
+  const [viewingCustomerId, setViewingCustomerId] = useState<number | null>(
+    null,
+  );
+  const [viewingItemId, setViewingItemId] = useState<number | null>(null);
 
   useEffect(() => {
     if (justCreated) {
@@ -297,13 +304,33 @@ export function TransactionsView({
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
                             {getInitials(t.plan.customer.name)}
                           </div>
-                          <span className="text-sm font-medium text-slate-900">
-                            {t.plan.customer.name}
-                          </span>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="truncate text-sm font-medium text-slate-900">
+                              {t.plan.customer.name}
+                            </span>
+                            <EntityViewButton
+                              label={`customer ${t.plan.customer.name}`}
+                              className="shrink-0"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setViewingCustomerId(t.plan.customer.id);
+                              }}
+                            />
+                          </div>
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-sm text-slate-600">
-                        {t.plan.item.name}
+                        <div className="flex items-center gap-2">
+                          <span className="truncate">{t.plan.item.name}</span>
+                          <EntityViewButton
+                            label={`item ${t.plan.item.name}`}
+                            className="shrink-0"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setViewingItemId(t.plan.item.id);
+                            }}
+                          />
+                        </div>
                       </td>
                       <td className="px-5 py-3.5 text-sm text-slate-400">
                         {t.description ?? (
@@ -335,13 +362,29 @@ export function TransactionsView({
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
                         {getInitials(t.plan.customer.name)}
                       </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-900">
-                          {t.plan.customer.name}
-                        </p>
-                        <p className="truncate text-xs text-slate-500">
-                          {t.plan.item.name}
-                        </p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-slate-900">
+                            {t.plan.customer.name}
+                          </p>
+                          <EntityViewButton
+                            label={`customer ${t.plan.customer.name}`}
+                            className="shrink-0"
+                            onClick={() =>
+                              setViewingCustomerId(t.plan.customer.id)
+                            }
+                          />
+                        </div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <p className="truncate text-xs text-slate-500">
+                            {t.plan.item.name}
+                          </p>
+                          <EntityViewButton
+                            label={`item ${t.plan.item.name}`}
+                            className="shrink-0"
+                            onClick={() => setViewingItemId(t.plan.item.id)}
+                          />
+                        </div>
                       </div>
                     </div>
                     <div className="shrink-0 text-right">
@@ -376,6 +419,26 @@ export function TransactionsView({
           </>
         )}
       </Card>
+
+      <CustomerDetailSheet
+        open={Boolean(viewingCustomerId)}
+        customerId={viewingCustomerId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingCustomerId(null);
+          }
+        }}
+      />
+
+      <ItemDetailSheet
+        open={Boolean(viewingItemId)}
+        itemId={viewingItemId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingItemId(null);
+          }
+        }}
+      />
     </div>
   );
 }

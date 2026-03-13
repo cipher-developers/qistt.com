@@ -32,6 +32,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CustomerDetailSheet } from "@/components/customers/customer-detail-sheet";
+import { ItemDetailSheet } from "@/components/items/item-detail-sheet";
+import { EntityViewButton } from "@/components/shared/entity-view-button";
 import { formatCurrency } from "@/lib/utils";
 import { TransactionForm } from "@/components/transactions/transaction-form";
 
@@ -124,6 +127,10 @@ export function PlansView({
   const [itemFilter, setItemFilter] = useState("all");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedPlan, setSelectedPlan] = useState<PlanRecord | null>(null);
+  const [viewingCustomerId, setViewingCustomerId] = useState<number | null>(
+    null,
+  );
+  const [viewingItemId, setViewingItemId] = useState<number | null>(null);
 
   const customers = useMemo(() => {
     const map = new Map<number, string>();
@@ -494,23 +501,43 @@ export function PlansView({
                           #{plan.id}
                         </td>
                         <td className="px-5 py-3.5">
-                          <div>
-                            <p className="text-sm font-semibold text-slate-900">
-                              {plan.customer.name}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              {plan.customer.phone}
-                            </p>
+                          <div className="flex items-start gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-slate-900">
+                                {plan.customer.name}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {plan.customer.phone}
+                              </p>
+                            </div>
+                            <EntityViewButton
+                              label={`customer ${plan.customer.name}`}
+                              className="mt-0.5 shrink-0"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setViewingCustomerId(plan.customer.id);
+                              }}
+                            />
                           </div>
                         </td>
                         <td className="px-5 py-3.5 text-sm text-slate-600">
-                          <div>
-                            <p className="font-medium text-slate-700">
-                              {plan.item.name}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              {plan.months} months
-                            </p>
+                          <div className="flex items-start gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-slate-700">
+                                {plan.item.name}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {plan.months} months
+                              </p>
+                            </div>
+                            <EntityViewButton
+                              label={`item ${plan.item.name}`}
+                              className="mt-0.5 shrink-0"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setViewingItemId(plan.item.id);
+                              }}
+                            />
                           </div>
                         </td>
                         <td className="px-5 py-3.5 text-right text-sm font-semibold text-slate-900">
@@ -569,16 +596,36 @@ export function PlansView({
                 return (
                   <div key={plan.id} className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 truncate">
                           Plan ID #{plan.id}
                         </p>
-                        <p className="text-sm font-semibold text-slate-900 truncate">
-                          {plan.customer.name}
-                        </p>
-                        <p className="text-xs text-slate-500 truncate">
-                          {plan.item.name} • {plan.months} months
-                        </p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-slate-900">
+                            {plan.customer.name}
+                          </p>
+                          <EntityViewButton
+                            label={`customer ${plan.customer.name}`}
+                            className="shrink-0"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setViewingCustomerId(plan.customer.id);
+                            }}
+                          />
+                        </div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <p className="truncate text-xs text-slate-500">
+                            {plan.item.name} • {plan.months} months
+                          </p>
+                          <EntityViewButton
+                            label={`item ${plan.item.name}`}
+                            className="shrink-0"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setViewingItemId(plan.item.id);
+                            }}
+                          />
+                        </div>
                         <p className="text-xs text-slate-500 truncate">
                           Created {formatDate(plan.createdAt)}
                         </p>
@@ -669,7 +716,21 @@ export function PlansView({
                         onClick={() => toggleGroup(group.key)}
                       >
                         <td className="px-5 py-3.5 text-sm font-semibold text-slate-900">
-                          {group.label}
+                          <div className="flex items-center gap-2">
+                            <span className="truncate">{group.label}</span>
+                            <EntityViewButton
+                              label={`${groupBy === "customer" ? "customer" : "item"} ${group.label}`}
+                              className="shrink-0"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                if (groupBy === "customer") {
+                                  setViewingCustomerId(Number(group.key));
+                                } else {
+                                  setViewingItemId(Number(group.key));
+                                }
+                              }}
+                            />
+                          </div>
                         </td>
                         <td className="px-5 py-3.5 text-center text-sm text-slate-600">
                           {group.plans.length}
@@ -716,15 +777,35 @@ export function PlansView({
                                 className="border-b border-slate-100 bg-slate-50/40"
                               >
                                 <td className="px-5 py-3.5 pl-10 text-sm text-slate-700">
-                                  <div>
-                                    <p>
-                                      {groupBy === "customer"
-                                        ? plan.item.name
-                                        : plan.customer.name}
-                                    </p>
-                                    <p className="text-[11px] text-slate-400 font-mono">
-                                      {plan.id}
-                                    </p>
+                                  <div className="flex items-start gap-2">
+                                    <div className="min-w-0 flex-1">
+                                      <p>
+                                        {groupBy === "customer"
+                                          ? plan.item.name
+                                          : plan.customer.name}
+                                      </p>
+                                      <p className="text-[11px] text-slate-400 font-mono">
+                                        {plan.id}
+                                      </p>
+                                    </div>
+                                    <EntityViewButton
+                                      label={`${groupBy === "customer" ? "item" : "customer"} ${
+                                        groupBy === "customer"
+                                          ? plan.item.name
+                                          : plan.customer.name
+                                      }`}
+                                      className="shrink-0"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        if (groupBy === "customer") {
+                                          setViewingItemId(plan.item.id);
+                                        } else {
+                                          setViewingCustomerId(
+                                            plan.customer.id,
+                                          );
+                                        }
+                                      }}
+                                    />
                                   </div>
                                 </td>
                                 <td className="px-5 py-3.5 text-center text-xs text-slate-500">
@@ -807,6 +888,26 @@ export function PlansView({
           ) : null}
         </DialogContent>
       </Dialog>
+
+      <CustomerDetailSheet
+        open={Boolean(viewingCustomerId)}
+        customerId={viewingCustomerId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingCustomerId(null);
+          }
+        }}
+      />
+
+      <ItemDetailSheet
+        open={Boolean(viewingItemId)}
+        itemId={viewingItemId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingItemId(null);
+          }
+        }}
+      />
     </div>
   );
 }

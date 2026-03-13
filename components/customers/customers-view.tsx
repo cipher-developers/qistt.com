@@ -22,6 +22,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { CustomerForm } from "@/components/customers/customer-form";
 import { CustomerDeleteButton } from "@/components/customers/delete-button";
+import { CustomerDetailSheet } from "@/components/customers/customer-detail-sheet";
+import { EntityViewButton } from "@/components/shared/entity-view-button";
 
 type CustomerRecord = {
   id: number;
@@ -58,6 +60,9 @@ export function CustomersView({
   const [query, setQuery] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CustomerRecord | null>(
+    null,
+  );
+  const [viewingCustomerId, setViewingCustomerId] = useState<number | null>(
     null,
   );
 
@@ -239,13 +244,23 @@ export function CustomersView({
                     <div className="text-sm font-semibold text-slate-700">
                       #{customer.id}
                     </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-slate-900">
-                        {customer.name}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {customer.cnic || "No CNIC"}
-                      </p>
+                    <div className="flex items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-slate-900">
+                          {customer.name}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {customer.cnic || "No CNIC"}
+                        </p>
+                      </div>
+                      <EntityViewButton
+                        label={`customer ${customer.name}`}
+                        className="mt-0.5 shrink-0"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setViewingCustomerId(customer.id);
+                        }}
+                      />
                     </div>
                     <div className="space-y-1 text-sm text-slate-600">
                       <p className="flex items-center gap-2 truncate">
@@ -291,22 +306,31 @@ export function CustomersView({
                   className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                         ID #{customer.id}
                       </p>
-                      <p className="truncate text-base font-semibold text-slate-900">
-                        {customer.name}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {customer.cnic || "No CNIC"}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {customer.address || "No address added"}
-                      </p>
-                      <p className="mt-2 text-xs text-slate-500">
-                        Created {formatDate(customer.createdAt)}
-                      </p>
+                      <div className="mt-1 flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-base font-semibold text-slate-900">
+                            {customer.name}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {customer.cnic || "No CNIC"}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {customer.address || "No address added"}
+                          </p>
+                          <p className="mt-2 text-xs text-slate-500">
+                            Created {formatDate(customer.createdAt)}
+                          </p>
+                        </div>
+                        <EntityViewButton
+                          label={`customer ${customer.name}`}
+                          className="mt-0.5 shrink-0"
+                          onClick={() => setViewingCustomerId(customer.id)}
+                        />
+                      </div>
                     </div>
                     <span className="inline-flex shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
                       {customer._count.installmentPlans} plans
@@ -387,6 +411,16 @@ export function CustomersView({
           </div>
         </DialogContent>
       </Dialog>
+
+      <CustomerDetailSheet
+        open={Boolean(viewingCustomerId)}
+        customerId={viewingCustomerId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingCustomerId(null);
+          }
+        }}
+      />
     </div>
   );
 }

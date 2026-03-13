@@ -23,6 +23,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { ItemForm } from "@/components/items/item-form";
 import { ItemDeleteButton } from "@/components/items/delete-button";
+import { ItemDetailSheet } from "@/components/items/item-detail-sheet";
+import { EntityViewButton } from "@/components/shared/entity-view-button";
 import { formatCurrency } from "@/lib/utils";
 
 type CategoryRecord = {
@@ -73,6 +75,7 @@ export function ItemsView({
   const [query, setQuery] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ItemRecord | null>(null);
+  const [viewingItemId, setViewingItemId] = useState<number | null>(null);
 
   const filteredItems = useMemo(() => {
     const value = query.trim().toLowerCase();
@@ -272,20 +275,32 @@ export function ItemsView({
                     <div className="text-sm font-semibold text-slate-700">
                       #{item.id}
                     </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-slate-900">
-                        {item.name}
-                      </p>
-                      <p className="mt-1 truncate text-xs font-medium text-slate-600">
-                        {item.model || "No model"}
-                      </p>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                        <Tag size={12} />
-                        <span className="truncate">{item.sku || "No SKU"}</span>
+                    <div className="flex items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-slate-900">
+                          {item.name}
+                        </p>
+                        <p className="mt-1 truncate text-xs font-medium text-slate-600">
+                          {item.model || "No model"}
+                        </p>
+                        <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                          <Tag size={12} />
+                          <span className="truncate">
+                            {item.sku || "No SKU"}
+                          </span>
+                        </div>
+                        <p className="mt-1 truncate text-xs text-slate-500">
+                          {item.description || "No description added"}
+                        </p>
                       </div>
-                      <p className="mt-1 truncate text-xs text-slate-500">
-                        {item.description || "No description added"}
-                      </p>
+                      <EntityViewButton
+                        label={`item ${item.name}`}
+                        className="mt-0.5 shrink-0"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setViewingItemId(item.id);
+                        }}
+                      />
                     </div>
                     <div className="truncate text-sm text-slate-600">
                       {item.category?.name || "Uncategorized"}
@@ -327,20 +342,29 @@ export function ItemsView({
                   className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                         ID #{item.id}
                       </p>
-                      <p className="truncate text-base font-semibold text-slate-900">
-                        {item.name}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {item.model || "No model"} •{" "}
-                        {item.category?.name || "Uncategorized"}
-                      </p>
-                      <p className="mt-2 text-xs text-slate-500">
-                        Created {formatDate(item.createdAt)}
-                      </p>
+                      <div className="mt-1 flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-base font-semibold text-slate-900">
+                            {item.name}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {item.model || "No model"} •{" "}
+                            {item.category?.name || "Uncategorized"}
+                          </p>
+                          <p className="mt-2 text-xs text-slate-500">
+                            Created {formatDate(item.createdAt)}
+                          </p>
+                        </div>
+                        <EntityViewButton
+                          label={`item ${item.name}`}
+                          className="mt-0.5 shrink-0"
+                          onClick={() => setViewingItemId(item.id)}
+                        />
+                      </div>
                     </div>
                     <span className="inline-flex shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
                       {item._count.installmentPlans} plans
@@ -422,6 +446,16 @@ export function ItemsView({
           </div>
         </DialogContent>
       </Dialog>
+
+      <ItemDetailSheet
+        open={Boolean(viewingItemId)}
+        itemId={viewingItemId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingItemId(null);
+          }
+        }}
+      />
     </div>
   );
 }
