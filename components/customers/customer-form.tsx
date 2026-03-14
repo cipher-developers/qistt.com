@@ -14,6 +14,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+function toDateInputValue(date: Date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+}
+
 function formatCnicInput(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 13);
   const first = digits.slice(0, 5);
@@ -48,6 +54,7 @@ type CustomerFormProps = {
     cnic: string | null;
     address: string | null;
     referenceId?: string | null;
+    createdAt?: string | Date;
   };
   onSuccess?: () => void;
   onCancel?: () => void;
@@ -67,6 +74,11 @@ export function CustomerForm({
   const [referenceId, setReferenceId] = useState(
     customer?.referenceId || "none",
   );
+  const [createdAt, setCreatedAt] = useState(
+    customer?.createdAt
+      ? toDateInputValue(new Date(customer.createdAt))
+      : toDateInputValue(new Date()),
+  );
   const [formData, setFormData] = useState({
     name: customer?.name || "",
     email: customer?.email || "",
@@ -77,6 +89,11 @@ export function CustomerForm({
 
   useEffect(() => {
     setReferenceId(customer?.referenceId || "none");
+    setCreatedAt(
+      customer?.createdAt
+        ? toDateInputValue(new Date(customer.createdAt))
+        : toDateInputValue(new Date()),
+    );
     setFormData({
       name: customer?.name || "",
       email: customer?.email || "",
@@ -102,6 +119,7 @@ export function CustomerForm({
         body: JSON.stringify({
           ...formData,
           referenceId: referenceId === "none" ? null : referenceId,
+          createdAt,
           tenantId,
         }),
       });
@@ -118,6 +136,7 @@ export function CustomerForm({
 
         if (mode === "create") {
           setReferenceId("none");
+          setCreatedAt(toDateInputValue(new Date()));
           setFormData({
             name: "",
             email: "",
@@ -198,6 +217,21 @@ export function CustomerForm({
             className="mt-1 h-11 rounded-xl border-slate-200"
           />
         </div>
+      </div>
+      <div>
+        <Label htmlFor="createdAt" className="text-slate-700 font-medium">
+          Created Date
+        </Label>
+        <Input
+          id="createdAt"
+          type="date"
+          value={createdAt}
+          onChange={(e) => setCreatedAt(e.target.value)}
+          className="mt-1 h-11 rounded-xl border-slate-200"
+        />
+        <p className="mt-1 text-xs text-slate-500">
+          Default is today. Set a past date when entering historical records.
+        </p>
       </div>
       <div>
         <Label htmlFor="reference" className="font-medium text-slate-700">

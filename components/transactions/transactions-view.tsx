@@ -10,6 +10,8 @@ import {
   Calendar,
   CheckCircle2,
   CreditCard,
+  FileDown,
+  FileSpreadsheet,
   Receipt,
   Search,
   TrendingUp,
@@ -546,7 +548,7 @@ export function TransactionsView({
       </div>
 
       <Card className="overflow-hidden">
-        <div className="flex items-center gap-3 border-b border-slate-100 p-4">
+        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search
               size={16}
@@ -556,35 +558,34 @@ export function TransactionsView({
               placeholder="Search by customer, item, or note..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 text-sm"
+              className="h-11 rounded-xl border-slate-200 bg-white pl-9 text-sm"
             />
           </div>
           {search && (
             <Button
-              variant="ghost"
-              size="sm"
+              variant="outline"
               onClick={() => setSearch("")}
-              className="text-slate-500"
+              className="h-11 rounded-xl"
             >
-              Clear
+              Clear Search
             </Button>
           )}
           <Button
             variant="outline"
-            size="sm"
-            className="border-slate-300"
+            className="h-11 rounded-xl"
             onClick={exportToCsv}
             disabled={exportRows.length === 0}
           >
+            <FileDown size={16} />
             Export CSV
           </Button>
           <Button
             variant="outline"
-            size="sm"
-            className="border-slate-300"
+            className="h-11 rounded-xl"
             onClick={exportToExcel}
             disabled={exportRows.length === 0}
           >
+            <FileSpreadsheet size={16} />
             Export Excel
           </Button>
         </div>

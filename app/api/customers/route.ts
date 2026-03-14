@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, email, phone, cnic, address, referenceId } = await request.json();
+    const { name, email, phone, cnic, address, referenceId, createdAt } =
+      await request.json();
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -24,6 +25,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const createdAtValue = createdAt ? new Date(createdAt) : new Date();
+    if (Number.isNaN(createdAtValue.getTime())) {
+      return NextResponse.json(
+        { error: "Invalid created date" },
+        { status: 400 }
+      );
+    }
+
     const customer = await prisma.customer.create({
       data: {
         name,
@@ -32,12 +41,29 @@ export async function POST(request: NextRequest) {
         cnic: cnic || null,
         address: address || null,
         referenceId: referenceId || null,
+        createdAt: createdAtValue,
         tenantId: tenant.id,
       },
     });
 
     return NextResponse.json(customer, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      const target = Array.isArray(error?.meta?.target)
+        ? error.meta.target
+        : [];
+      if (target.includes("phone")) {
+        return NextResponse.json(
+          { error: "A customer with this phone number already exists" },
+          { status: 409 }
+        );
+      }
+      return NextResponse.json(
+        { error: "A customer with the same unique details already exists" },
+        { status: 409 }
+      );
+    }
+
     console.error("Create customer error:", error);
     return NextResponse.json(
       { error: "Failed to create customer" },

@@ -12,6 +12,8 @@ import {
   ChevronDown,
   Clock3,
   CreditCard,
+  FileDown,
+  FileSpreadsheet,
   FileText,
   Search,
   X,
@@ -658,30 +660,34 @@ export function InstallmentsView({
                 placeholder="Search by customer, phone, item, plan id, installment # or status..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 text-sm"
+                className="h-11 rounded-xl border-slate-200 bg-white pl-9 text-sm"
               />
             </div>
             {(search || activeFilters > 0) && (
-              <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+              <Button
+                variant="outline"
+                className="h-11 rounded-xl"
+                onClick={clearAllFilters}
+              >
                 Clear all
               </Button>
             )}
             <Button
               variant="outline"
-              size="sm"
-              className="border-slate-300"
+              className="h-11 rounded-xl"
               onClick={exportToCsv}
               disabled={exportRows.length === 0}
             >
+              <FileDown size={16} />
               Export CSV
             </Button>
             <Button
               variant="outline"
-              size="sm"
-              className="border-slate-300"
+              className="h-11 rounded-xl"
               onClick={exportToExcel}
               disabled={exportRows.length === 0}
             >
+              <FileSpreadsheet size={16} />
               Export Excel
             </Button>
           </div>

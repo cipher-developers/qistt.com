@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
       sellingPrice,
       advancePaid,
       months,
+      createdAt,
     } = await request.json();
 
     const customerIdValue = Number(customerId);
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest) {
     const sellingPriceValue = Number(sellingPrice);
     const advancePaidValue = Number(advancePaid ?? 0);
     const monthsValue = Number(months);
+    const createdAtValue = createdAt ? new Date(createdAt) : new Date();
 
     if (
       !Number.isInteger(customerIdValue) ||
@@ -33,7 +35,8 @@ export async function POST(request: NextRequest) {
       !Number.isInteger(monthsValue) ||
       monthsValue <= 0 ||
       !Number.isFinite(advancePaidValue) ||
-      advancePaidValue < 0
+      advancePaidValue < 0 ||
+      Number.isNaN(createdAtValue.getTime())
     ) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -60,17 +63,17 @@ export async function POST(request: NextRequest) {
           advancePaid: advancePaidValue,
           months: monthsValue,
           monthlyAmount: parseFloat(monthlyAmount.toFixed(2)),
-          startDate: new Date(),
+          startDate: createdAtValue,
+          createdAt: createdAtValue,
           tenantId: tenant.id,
         },
       });
 
       const installments = [];
-      const today = new Date();
       let remainingAdvance = advancePaidValue;
 
       for (let i = 0; i < monthsValue; i++) {
-        const dueDate = new Date(today);
+        const dueDate = new Date(createdAtValue);
         dueDate.setMonth(dueDate.getMonth() + i + 1);
         dueDate.setDate(1);
 

@@ -5,6 +5,8 @@ import Link from "next/link";
 import {
   Boxes,
   Calendar,
+  FileDown,
+  FileSpreadsheet,
   FolderKanban,
   Package,
   Plus,
@@ -74,6 +76,27 @@ function startOfCurrentMonth() {
 function endOfCurrentMonth() {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth() + 1, 0);
+}
+
+function escapeCsv(value: string | number | null | undefined) {
+  const stringValue = value == null ? "" : String(value);
+  if (
+    stringValue.includes(",") ||
+    stringValue.includes("\n") ||
+    stringValue.includes('"')
+  ) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  return stringValue;
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 type ItemsViewProps = {
@@ -160,6 +183,27 @@ export function ItemsView({
     );
   }, [dateFilteredItems, query]);
 
+  const exportRows = useMemo(
+    () =>
+      [...filteredItems]
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
+        .map((item) => ({
+          itemId: item.id,
+          itemName: item.name,
+          model: item.model || "",
+          category: item.category?.name || "Uncategorized",
+          sku: item.sku || "",
+          sellingPrice: item.sellingPrice ?? 0,
+          costPrice: item.costPrice ?? 0,
+          plans: item._count.installmentPlans,
+          createdDate: new Date(item.createdAt).toISOString().slice(0, 10),
+        })),
+    [filteredItems],
+  );
+
   const totalPlans = dateFilteredItems.reduce(
     (sum, item) => sum + item._count.installmentPlans,
     0,
@@ -172,6 +216,97 @@ export function ItemsView({
         ) / dateFilteredItems.length
       : 0;
   const canCreateItem = categories.length > 0;
+
+  function exportToCsv() {
+    if (exportRows.length === 0) return;
+
+    const headers = [
+      "Item #",
+      "Name",
+      "Model",
+      "Category",
+      "SKU",
+      "Selling Price",
+      "Cost Price",
+      "Plans",
+      "Created Date",
+    ];
+
+    const lines = [
+      headers.join(","),
+      ...exportRows.map((row) =>
+        [
+          row.itemId,
+          row.itemName,
+          row.model,
+          row.category,
+          row.sku,
+          row.sellingPrice,
+          row.costPrice,
+          row.plans,
+          row.createdDate,
+        ]
+          .map(escapeCsv)
+          .join(","),
+      ),
+    ];
+
+    downloadBlob(
+      new Blob([`\uFEFF${lines.join("\n")}`], {
+        type: "text/csv;charset=utf-8;",
+      }),
+      `items-export-${new Date().toISOString().slice(0, 10)}.csv`,
+    );
+  }
+
+  function exportToExcel() {
+    if (exportRows.length === 0) return;
+
+    const headerCells = [
+      "Item #",
+      "Name",
+      "Model",
+      "Category",
+      "SKU",
+      "Selling Price",
+      "Cost Price",
+      "Plans",
+      "Created Date",
+    ]
+      .map((header) => `<th>${header}</th>`)
+      .join("");
+
+    const rowsHtml = exportRows
+      .map(
+        (row) => `
+      <tr>
+        <td>${row.itemId}</td>
+        <td>${row.itemName}</td>
+        <td>${row.model}</td>
+        <td>${row.category}</td>
+        <td>${row.sku}</td>
+        <td>${row.sellingPrice}</td>
+        <td>${row.costPrice}</td>
+        <td>${row.plans}</td>
+        <td>${row.createdDate}</td>
+      </tr>`,
+      )
+      .join("");
+
+    const tableHtml = `
+      <table>
+        <thead><tr>${headerCells}</tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    `;
+
+    downloadBlob(
+      new Blob([tableHtml], {
+        type: "application/vnd.ms-excel;charset=utf-8;",
+      }),
+      `items-export-${new Date().toISOString().slice(0, 10)}.xls`,
+    );
+  }
 
   return (
     <div className="space-y-6 md:space-y-7">
@@ -204,6 +339,24 @@ export function ItemsView({
                 className="h-11 rounded-xl border-slate-200 bg-white pl-9"
               />
             </div>
+            <Button
+              variant="outline"
+              className="h-11 rounded-xl"
+              onClick={exportToCsv}
+              disabled={exportRows.length === 0}
+            >
+              <FileDown size={16} />
+              Export CSV
+            </Button>
+            <Button
+              variant="outline"
+              className="h-11 rounded-xl"
+              onClick={exportToExcel}
+              disabled={exportRows.length === 0}
+            >
+              <FileSpreadsheet size={16} />
+              Export Excel
+            </Button>
             <Button variant="outline" className="h-11 rounded-xl" asChild>
               <Link href="/dashboard/items/categories">Manage Categories</Link>
             </Button>

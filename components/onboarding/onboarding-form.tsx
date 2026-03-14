@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,20 @@ interface Item {
   sellingPrice: number | null;
 }
 
+function toDateInputValue(date: Date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+}
+
+function getInstallmentDueDate(startDate: Date, installmentNumber: number) {
+  const dueDate = new Date(startDate);
+  dueDate.setMonth(dueDate.getMonth() + installmentNumber);
+  dueDate.setDate(1);
+  dueDate.setHours(0, 0, 0, 0);
+  return dueDate;
+}
+
 export function OnboardingForm({
   tenantId,
   customers,
@@ -70,6 +84,7 @@ export function OnboardingForm({
     sellingPrice: "",
     advancePaid: "0",
     months: "12",
+    createdAt: toDateInputValue(new Date()),
   });
 
   const selectedItem = items.find((i) => String(i.id) === formData.itemId);
@@ -81,6 +96,29 @@ export function OnboardingForm({
   const months = parseInt(formData.months || "0", 10);
   const remainingBalance = Math.max(sellingPrice - advancePaid, 0);
   const monthlyAmount = months > 0 ? remainingBalance / months : 0;
+  const planCreatedDate = new Date(formData.createdAt || new Date());
+  const installmentsPreview = useMemo(() => {
+    if (!months || Number.isNaN(planCreatedDate.getTime())) {
+      return [] as {
+        installmentNumber: number;
+        dueDate: Date;
+        monthLabel: string;
+      }[];
+    }
+
+    return Array.from({ length: months }, (_, index) => {
+      const installmentNumber = index + 1;
+      const dueDate = getInstallmentDueDate(planCreatedDate, installmentNumber);
+      return {
+        installmentNumber,
+        dueDate,
+        monthLabel: dueDate.toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        }),
+      };
+    });
+  }, [months, planCreatedDate]);
 
   const noDataAvailable = customers.length === 0 || items.length === 0;
 
@@ -147,6 +185,7 @@ export function OnboardingForm({
           sellingPrice: parseFloat(formData.sellingPrice),
           advancePaid: parseFloat(formData.advancePaid),
           months: parseInt(formData.months),
+          createdAt: formData.createdAt,
           tenantId,
         }),
       });
@@ -445,6 +484,27 @@ export function OnboardingForm({
                 </div>
               </div>
 
+              <div>
+                <Label
+                  htmlFor="createdAt"
+                  className="text-slate-700 font-medium"
+                >
+                  Plan Created Date
+                </Label>
+                <Input
+                  id="createdAt"
+                  type="date"
+                  value={formData.createdAt}
+                  onChange={(e) =>
+                    setFormData({ ...formData, createdAt: e.target.value })
+                  }
+                  className="mt-1 h-11 rounded-xl border-slate-200"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Default is today. Use this when backfilling older plans.
+                </p>
+              </div>
+
               <div className="flex flex-wrap gap-2">
                 {[6, 12, 18, 24].map((option) => (
                   <Button
@@ -514,6 +574,48 @@ export function OnboardingForm({
                       {formatCurrency(monthlyAmount)}
                     </span>
                   </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-600">Plan Created</span>
+                    <span className="font-medium text-slate-900">
+                      {Number.isNaN(planCreatedDate.getTime())
+                        ? "-"
+                        : planCreatedDate.toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <p className="text-sm font-semibold text-slate-900">
+                  Installment Schedule Preview
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  First installment starts on the 1st day of the next month.
+                </p>
+                <div className="mt-3 max-h-56 space-y-2 overflow-y-auto pr-1">
+                  {installmentsPreview.map((entry) => (
+                    <div
+                      key={entry.installmentNumber}
+                      className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    >
+                      <span className="font-medium text-slate-700">
+                        Installment #{entry.installmentNumber}
+                      </span>
+                      <span className="text-slate-600">
+                        {entry.monthLabel} (
+                        {entry.dueDate.toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                        )
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

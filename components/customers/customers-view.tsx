@@ -5,6 +5,8 @@ import Link from "next/link";
 import {
   Bookmark,
   Calendar,
+  FileDown,
+  FileSpreadsheet,
   Search,
   Plus,
   Users,
@@ -70,6 +72,27 @@ function startOfCurrentMonth() {
 function endOfCurrentMonth() {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth() + 1, 0);
+}
+
+function escapeCsv(value: string | number | null | undefined) {
+  const stringValue = value == null ? "" : String(value);
+  if (
+    stringValue.includes(",") ||
+    stringValue.includes("\n") ||
+    stringValue.includes('"')
+  ) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  return stringValue;
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 type CustomersViewProps = {
@@ -166,6 +189,27 @@ export function CustomersView({
     );
   }, [dateFilteredCustomers, query]);
 
+  const exportRows = useMemo(
+    () =>
+      [...filteredCustomers]
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
+        .map((customer) => ({
+          customerId: customer.id,
+          name: customer.name,
+          phone: customer.phone || "",
+          email: customer.email || "",
+          cnic: customer.cnic || "",
+          reference: customer.reference?.name || "Others",
+          address: customer.address || "",
+          plans: customer._count.installmentPlans,
+          createdDate: new Date(customer.createdAt).toISOString().slice(0, 10),
+        })),
+    [filteredCustomers],
+  );
+
   const totalPlans = dateFilteredCustomers.reduce(
     (sum, customer) => sum + customer._count.installmentPlans,
     0,
@@ -174,6 +218,97 @@ export function CustomersView({
   const customersWithEmail = dateFilteredCustomers.filter(
     (customer) => customer.email,
   ).length;
+
+  function exportToCsv() {
+    if (exportRows.length === 0) return;
+
+    const headers = [
+      "Customer #",
+      "Name",
+      "Phone",
+      "Email",
+      "CNIC",
+      "Reference",
+      "Address",
+      "Plans",
+      "Created Date",
+    ];
+
+    const lines = [
+      headers.join(","),
+      ...exportRows.map((row) =>
+        [
+          row.customerId,
+          row.name,
+          row.phone,
+          row.email,
+          row.cnic,
+          row.reference,
+          row.address,
+          row.plans,
+          row.createdDate,
+        ]
+          .map(escapeCsv)
+          .join(","),
+      ),
+    ];
+
+    downloadBlob(
+      new Blob([`\uFEFF${lines.join("\n")}`], {
+        type: "text/csv;charset=utf-8;",
+      }),
+      `customers-export-${new Date().toISOString().slice(0, 10)}.csv`,
+    );
+  }
+
+  function exportToExcel() {
+    if (exportRows.length === 0) return;
+
+    const headerCells = [
+      "Customer #",
+      "Name",
+      "Phone",
+      "Email",
+      "CNIC",
+      "Reference",
+      "Address",
+      "Plans",
+      "Created Date",
+    ]
+      .map((header) => `<th>${header}</th>`)
+      .join("");
+
+    const rowsHtml = exportRows
+      .map(
+        (row) => `
+      <tr>
+        <td>${row.customerId}</td>
+        <td>${row.name}</td>
+        <td>${row.phone}</td>
+        <td>${row.email}</td>
+        <td>${row.cnic}</td>
+        <td>${row.reference}</td>
+        <td>${row.address}</td>
+        <td>${row.plans}</td>
+        <td>${row.createdDate}</td>
+      </tr>`,
+      )
+      .join("");
+
+    const tableHtml = `
+      <table>
+        <thead><tr>${headerCells}</tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    `;
+
+    downloadBlob(
+      new Blob([tableHtml], {
+        type: "application/vnd.ms-excel;charset=utf-8;",
+      }),
+      `customers-export-${new Date().toISOString().slice(0, 10)}.xls`,
+    );
+  }
 
   return (
     <div className="space-y-6 md:space-y-7">
@@ -207,17 +342,35 @@ export function CustomersView({
               />
             </div>
             <Button
-              onClick={() => setIsCreateOpen(true)}
-              className="h-11 rounded-xl bg-slate-900 px-4 text-sm font-medium hover:bg-slate-800"
+              variant="outline"
+              className="h-11 rounded-xl"
+              onClick={exportToCsv}
+              disabled={exportRows.length === 0}
             >
-              <Plus size={16} />
-              Add Customer
+              <FileDown size={16} />
+              Export CSV
+            </Button>
+            <Button
+              variant="outline"
+              className="h-11 rounded-xl"
+              onClick={exportToExcel}
+              disabled={exportRows.length === 0}
+            >
+              <FileSpreadsheet size={16} />
+              Export Excel
             </Button>
             <Button variant="outline" className="h-11 rounded-xl" asChild>
               <Link href="/dashboard/customers/references">
                 <Bookmark size={16} />
                 Manage References
               </Link>
+            </Button>
+            <Button
+              onClick={() => setIsCreateOpen(true)}
+              className="h-11 rounded-xl bg-slate-900 px-4 text-sm font-medium hover:bg-slate-800"
+            >
+              <Plus size={16} />
+              Add Customer
             </Button>
           </div>
         </div>

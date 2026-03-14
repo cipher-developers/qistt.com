@@ -9,6 +9,8 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  FileDown,
+  FileSpreadsheet,
   Layers3,
   Plus,
   Search,
@@ -138,6 +140,27 @@ function startOfCurrentMonth() {
 function endOfCurrentMonth() {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth() + 1, 0);
+}
+
+function escapeCsv(value: string | number | null | undefined) {
+  const stringValue = value == null ? "" : String(value);
+  if (
+    stringValue.includes(",") ||
+    stringValue.includes("\n") ||
+    stringValue.includes('"')
+  ) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  return stringValue;
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export function PlansView({
@@ -338,6 +361,35 @@ export function PlansView({
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [filteredPlans, groupBy]);
 
+  const exportRows = useMemo(
+    () =>
+      [...filteredPlans]
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
+        .map((plan) => {
+          const metrics = getPlanMetrics(plan);
+          return {
+            planId: plan.id,
+            customerId: plan.customer.id,
+            customer: plan.customer.name,
+            phone: plan.customer.phone,
+            item: plan.item.name,
+            sellingPrice: plan.sellingPrice,
+            advancePaid: plan.advancePaid,
+            generatedRevenue: metrics.generatedRevenue,
+            pendingRevenue: metrics.pendingRevenue,
+            months: plan.months,
+            monthlyAmount: plan.monthlyAmount,
+            progress: `${metrics.progress.toFixed(0)}%`,
+            status: plan.status,
+            createdDate: new Date(plan.createdAt).toISOString().slice(0, 10),
+          };
+        }),
+    [filteredPlans],
+  );
+
   const summary = useMemo(() => {
     const totalRevenue = dateFilteredPlans.reduce(
       (sum, p) => sum + p.sellingPrice,
@@ -400,6 +452,117 @@ export function PlansView({
     setCustomerFilter("all");
     setItemFilter("all");
     applyDatePreset("this-month");
+  }
+
+  function exportToCsv() {
+    if (exportRows.length === 0) return;
+
+    const headers = [
+      "Plan #",
+      "Customer #",
+      "Customer",
+      "Phone",
+      "Item",
+      "Selling Price",
+      "Advance Paid",
+      "Collected",
+      "Pending",
+      "Months",
+      "Monthly Amount",
+      "Progress",
+      "Status",
+      "Created Date",
+    ];
+
+    const lines = [
+      headers.join(","),
+      ...exportRows.map((row) =>
+        [
+          row.planId,
+          row.customerId,
+          row.customer,
+          row.phone,
+          row.item,
+          row.sellingPrice,
+          row.advancePaid,
+          row.generatedRevenue,
+          row.pendingRevenue,
+          row.months,
+          row.monthlyAmount,
+          row.progress,
+          row.status,
+          row.createdDate,
+        ]
+          .map(escapeCsv)
+          .join(","),
+      ),
+    ];
+
+    downloadBlob(
+      new Blob([`\uFEFF${lines.join("\n")}`], {
+        type: "text/csv;charset=utf-8;",
+      }),
+      `plans-export-${new Date().toISOString().slice(0, 10)}.csv`,
+    );
+  }
+
+  function exportToExcel() {
+    if (exportRows.length === 0) return;
+
+    const headerCells = [
+      "Plan #",
+      "Customer #",
+      "Customer",
+      "Phone",
+      "Item",
+      "Selling Price",
+      "Advance Paid",
+      "Collected",
+      "Pending",
+      "Months",
+      "Monthly Amount",
+      "Progress",
+      "Status",
+      "Created Date",
+    ]
+      .map((header) => `<th>${header}</th>`)
+      .join("");
+
+    const rowsHtml = exportRows
+      .map(
+        (row) => `
+      <tr>
+        <td>${row.planId}</td>
+        <td>${row.customerId}</td>
+        <td>${row.customer}</td>
+        <td>${row.phone}</td>
+        <td>${row.item}</td>
+        <td>${row.sellingPrice}</td>
+        <td>${row.advancePaid}</td>
+        <td>${row.generatedRevenue}</td>
+        <td>${row.pendingRevenue}</td>
+        <td>${row.months}</td>
+        <td>${row.monthlyAmount}</td>
+        <td>${row.progress}</td>
+        <td>${row.status}</td>
+        <td>${row.createdDate}</td>
+      </tr>`,
+      )
+      .join("");
+
+    const tableHtml = `
+      <table>
+        <thead><tr>${headerCells}</tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    `;
+
+    downloadBlob(
+      new Blob([tableHtml], {
+        type: "application/vnd.ms-excel;charset=utf-8;",
+      }),
+      `plans-export-${new Date().toISOString().slice(0, 10)}.xls`,
+    );
   }
 
   return (
@@ -581,7 +744,7 @@ export function PlansView({
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search by customer, phone, item, or plan id"
-              className="h-10 rounded-xl border-slate-200 bg-white pl-9"
+              className="h-11 rounded-xl border-slate-200 bg-white pl-9"
             />
           </div>
 
@@ -589,7 +752,7 @@ export function PlansView({
             value={groupBy}
             onValueChange={(value) => setGroupBy(value as GroupBy)}
           >
-            <SelectTrigger className="h-10 rounded-xl border-slate-200 bg-white">
+            <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white">
               <SelectValue placeholder="Group by" />
             </SelectTrigger>
             <SelectContent>
@@ -603,7 +766,7 @@ export function PlansView({
             value={revenueFilter}
             onValueChange={(value) => setRevenueFilter(value as RevenueFilter)}
           >
-            <SelectTrigger className="h-10 rounded-xl border-slate-200 bg-white">
+            <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white">
               <SelectValue placeholder="Revenue filter" />
             </SelectTrigger>
             <SelectContent>
@@ -615,7 +778,7 @@ export function PlansView({
           </Select>
 
           <Select value={customerFilter} onValueChange={setCustomerFilter}>
-            <SelectTrigger className="h-10 rounded-xl border-slate-200 bg-white">
+            <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white">
               <SelectValue placeholder="Customer" />
             </SelectTrigger>
             <SelectContent>
@@ -628,9 +791,9 @@ export function PlansView({
             </SelectContent>
           </Select>
 
-          <div className="flex gap-2">
+          <div>
             <Select value={itemFilter} onValueChange={setItemFilter}>
-              <SelectTrigger className="h-10 rounded-xl border-slate-200 bg-white">
+              <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white">
                 <SelectValue placeholder="Item" />
               </SelectTrigger>
               <SelectContent>
@@ -642,14 +805,34 @@ export function PlansView({
                 ))}
               </SelectContent>
             </Select>
-            <Button
-              variant="outline"
-              className="h-10 rounded-xl"
-              onClick={clearFilters}
-            >
-              Reset
-            </Button>
           </div>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+          <Button
+            variant="outline"
+            className="h-11 rounded-xl"
+            onClick={clearFilters}
+          >
+            Reset
+          </Button>
+          <Button
+            variant="outline"
+            className="h-11 rounded-xl"
+            onClick={exportToCsv}
+            disabled={exportRows.length === 0}
+          >
+            <FileDown size={16} />
+            Export CSV
+          </Button>
+          <Button
+            variant="outline"
+            className="h-11 rounded-xl"
+            onClick={exportToExcel}
+            disabled={exportRows.length === 0}
+          >
+            <FileSpreadsheet size={16} />
+            Export Excel
+          </Button>
         </div>
       </Card>
 

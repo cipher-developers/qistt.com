@@ -145,7 +145,8 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, email, phone, cnic, address, referenceId } = await request.json();
+    const { name, email, phone, cnic, address, referenceId, createdAt } =
+      await request.json();
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -154,6 +155,14 @@ export async function PUT(
     if (cnic && !CNIC_PATTERN.test(cnic)) {
       return NextResponse.json(
         { error: "CNIC must match the format 12345-1234567-1" },
+        { status: 400 }
+      );
+    }
+
+    const createdAtValue = createdAt ? new Date(createdAt) : null;
+    if (createdAt && (!createdAtValue || Number.isNaN(createdAtValue.getTime()))) {
+      return NextResponse.json(
+        { error: "Invalid created date" },
         { status: 400 }
       );
     }
@@ -170,11 +179,28 @@ export async function PUT(
         cnic: cnic || null,
         address: address || null,
         referenceId: referenceId || null,
+        ...(createdAtValue ? { createdAt: createdAtValue } : {}),
       },
     });
 
     return NextResponse.json(customer);
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      const target = Array.isArray(error?.meta?.target)
+        ? error.meta.target
+        : [];
+      if (target.includes("phone")) {
+        return NextResponse.json(
+          { error: "A customer with this phone number already exists" },
+          { status: 409 }
+        );
+      }
+      return NextResponse.json(
+        { error: "A customer with the same unique details already exists" },
+        { status: 409 }
+      );
+    }
+
     console.error("Update customer error:", error);
     return NextResponse.json(
       { error: "Failed to update customer" },
