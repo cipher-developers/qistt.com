@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BarChart3,
+  Calendar,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -123,6 +124,22 @@ function formatDate(date: string | Date) {
   });
 }
 
+function toDateInputValue(date: Date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+}
+
+function startOfCurrentMonth() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1);
+}
+
+function endOfCurrentMonth() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() + 1, 0);
+}
+
 export function PlansView({
   plans,
   tenantName,
@@ -131,6 +148,15 @@ export function PlansView({
   tenantName?: string;
 }) {
   const [search, setSearch] = useState("");
+  const [datePreset, setDatePreset] = useState<
+    "this-month" | "last-30" | "all" | "custom"
+  >("this-month");
+  const [fromDate, setFromDate] = useState<string>(
+    toDateInputValue(startOfCurrentMonth()),
+  );
+  const [toDate, setToDate] = useState<string>(
+    toDateInputValue(endOfCurrentMonth()),
+  );
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
   const [revenueFilter, setRevenueFilter] = useState<RevenueFilter>("all");
   const [customerFilter, setCustomerFilter] = useState("all");
@@ -193,10 +219,53 @@ export function PlansView({
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [plans]);
 
+  function applyDatePreset(preset: "this-month" | "last-30" | "all") {
+    setDatePreset(preset);
+
+    if (preset === "all") {
+      setFromDate("");
+      setToDate("");
+      return;
+    }
+
+    if (preset === "last-30") {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - 29);
+      setFromDate(toDateInputValue(start));
+      setToDate(toDateInputValue(end));
+      return;
+    }
+
+    setFromDate(toDateInputValue(startOfCurrentMonth()));
+    setToDate(toDateInputValue(endOfCurrentMonth()));
+  }
+
+  const dateFilteredPlans = useMemo(() => {
+    return plans.filter((plan) => {
+      const created = new Date(plan.createdAt);
+      created.setHours(0, 0, 0, 0);
+
+      if (fromDate) {
+        const start = new Date(fromDate);
+        start.setHours(0, 0, 0, 0);
+        if (created < start) return false;
+      }
+
+      if (toDate) {
+        const end = new Date(toDate);
+        end.setHours(0, 0, 0, 0);
+        if (created > end) return false;
+      }
+
+      return true;
+    });
+  }, [plans, fromDate, toDate]);
+
   const filteredPlans = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    return plans.filter((plan) => {
+    return dateFilteredPlans.filter((plan) => {
       const metrics = getPlanMetrics(plan);
 
       const matchesSearch =
@@ -224,7 +293,7 @@ export function PlansView({
         matchesSearch && matchesCustomer && matchesItem && matchesRevenueFilter
       );
     });
-  }, [plans, search, customerFilter, itemFilter, revenueFilter]);
+  }, [dateFilteredPlans, search, customerFilter, itemFilter, revenueFilter]);
 
   const groupedPlans = useMemo(() => {
     if (groupBy === "none") return [] as GroupedPlan[];
@@ -270,16 +339,21 @@ export function PlansView({
   }, [filteredPlans, groupBy]);
 
   const summary = useMemo(() => {
-    const totalRevenue = plans.reduce((sum, p) => sum + p.sellingPrice, 0);
-    const generatedRevenue = plans.reduce(
+    const totalRevenue = dateFilteredPlans.reduce(
+      (sum, p) => sum + p.sellingPrice,
+      0,
+    );
+    const generatedRevenue = dateFilteredPlans.reduce(
       (sum, p) => sum + getPlanMetrics(p).generatedRevenue,
       0,
     );
     const pendingRevenue = Math.max(totalRevenue - generatedRevenue, 0);
     const avgProgress =
-      plans.length > 0
-        ? plans.reduce((sum, p) => sum + getPlanMetrics(p).progress, 0) /
-          plans.length
+      dateFilteredPlans.length > 0
+        ? dateFilteredPlans.reduce(
+            (sum, p) => sum + getPlanMetrics(p).progress,
+            0,
+          ) / dateFilteredPlans.length
         : 0;
 
     return {
@@ -288,7 +362,7 @@ export function PlansView({
       pendingRevenue,
       avgProgress,
     };
-  }, [plans]);
+  }, [dateFilteredPlans]);
 
   function toggleGroup(groupKey: string) {
     setExpandedGroups((prev) => {
@@ -325,6 +399,7 @@ export function PlansView({
     setRevenueFilter("all");
     setCustomerFilter("all");
     setItemFilter("all");
+    applyDatePreset("this-month");
   }
 
   return (
@@ -360,6 +435,75 @@ export function PlansView({
         </div>
       </section>
 
+      <Card className="border border-slate-200/70 bg-white/90 p-4 sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Created Date Range
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={datePreset === "this-month" ? "default" : "outline"}
+                className={
+                  datePreset === "this-month"
+                    ? "bg-slate-900 hover:bg-slate-800"
+                    : "border-slate-300"
+                }
+                onClick={() => applyDatePreset("this-month")}
+              >
+                This Month
+              </Button>
+              <Button
+                size="sm"
+                variant={datePreset === "last-30" ? "default" : "outline"}
+                className={
+                  datePreset === "last-30"
+                    ? "bg-slate-900 hover:bg-slate-800"
+                    : "border-slate-300"
+                }
+                onClick={() => applyDatePreset("last-30")}
+              >
+                Last 30 Days
+              </Button>
+              <Button
+                size="sm"
+                variant={datePreset === "all" ? "default" : "outline"}
+                className={
+                  datePreset === "all"
+                    ? "bg-slate-900 hover:bg-slate-800"
+                    : "border-slate-300"
+                }
+                onClick={() => applyDatePreset("all")}
+              >
+                All Time
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Input
+              type="date"
+              value={fromDate}
+              onChange={(event) => {
+                setDatePreset("custom");
+                setFromDate(event.target.value);
+              }}
+              className="h-10 rounded-xl border-slate-200 bg-white"
+            />
+            <Input
+              type="date"
+              value={toDate}
+              onChange={(event) => {
+                setDatePreset("custom");
+                setToDate(event.target.value);
+              }}
+              className="h-10 rounded-xl border-slate-200 bg-white"
+            />
+          </div>
+        </div>
+      </Card>
+
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="border border-slate-200/70 bg-white/90 p-5">
           <div className="flex items-center justify-between gap-4">
@@ -368,11 +512,11 @@ export function PlansView({
                 Active Plans
               </p>
               <p className="mt-2 text-2xl font-semibold text-slate-900">
-                {plans.length}
+                {dateFilteredPlans.length}
               </p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-sky-50 p-2.5 text-sky-600">
-              <BarChart3 size={20} />
+              <Calendar size={20} />
             </div>
           </div>
         </Card>

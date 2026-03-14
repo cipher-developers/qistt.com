@@ -4,6 +4,9 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   Calendar,
   CheckCircle2,
   ChevronDown,
@@ -89,6 +92,51 @@ function getStatusTone(status: string) {
 
 const STATUS_OPTIONS = ["pending", "partial", "paid"] as const;
 
+type SortKey =
+  | "plan"
+  | "customer"
+  | "item"
+  | "installment"
+  | "amount"
+  | "paid"
+  | "due"
+  | "status";
+type SortDirection = "asc" | "desc";
+
+function toDateInputValue(date: Date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+}
+
+function startOfCurrentMonth() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1);
+}
+
+function endOfCurrentMonth() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() + 1, 0);
+}
+
+function escapeCsv(value: string | number | null | undefined) {
+  if (value === null || value === undefined) return "";
+  const text = String(value);
+  if (/[",\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export function InstallmentsView({
   installments,
   initialInstallmentId,
@@ -97,6 +145,17 @@ export function InstallmentsView({
   initialInstallmentId?: string;
 }) {
   const [search, setSearch] = useState("");
+  const [datePreset, setDatePreset] = useState<
+    "this-month" | "last-30" | "all" | "custom"
+  >("this-month");
+  const [fromDate, setFromDate] = useState<string>(
+    toDateInputValue(startOfCurrentMonth()),
+  );
+  const [toDate, setToDate] = useState<string>(
+    toDateInputValue(endOfCurrentMonth()),
+  );
+  const [sortKey, setSortKey] = useState<SortKey>("due");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [filterCustomer, setFilterCustomer] = useState<number | null>(null);
   const [filterItem, setFilterItem] = useState<number | null>(null);
   const [filterPlan, setFilterPlan] = useState<number | null>(null);
@@ -150,17 +209,61 @@ export function InstallmentsView({
     (filterPlan !== null ? 1 : 0) +
     (filterStatus !== null ? 1 : 0);
 
-  const totals = useMemo(() => {
-    const total = installments.reduce((sum, i) => sum + i.amount, 0);
-    const paid = installments.reduce((sum, i) => sum + i.paidAmount, 0);
-    const pending = Math.max(total - paid, 0);
-    const paidCount = installments.filter((i) => i.status === "paid").length;
+  function applyDatePreset(preset: "this-month" | "last-30" | "all") {
+    setDatePreset(preset);
 
-    return { total, paid, pending, paidCount };
-  }, [installments]);
+    if (preset === "all") {
+      setFromDate("");
+      setToDate("");
+      return;
+    }
+
+    if (preset === "last-30") {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - 29);
+      setFromDate(toDateInputValue(start));
+      setToDate(toDateInputValue(end));
+      return;
+    }
+
+    setFromDate(toDateInputValue(startOfCurrentMonth()));
+    setToDate(toDateInputValue(endOfCurrentMonth()));
+  }
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortKey(key);
+    setSortDirection(key === "due" ? "asc" : "desc");
+  }
+
+  const dateFiltered = useMemo(() => {
+    return installments.filter((i) => {
+      const due = new Date(i.dueDate);
+      due.setHours(0, 0, 0, 0);
+
+      if (fromDate) {
+        const start = new Date(fromDate);
+        start.setHours(0, 0, 0, 0);
+        if (due < start) return false;
+      }
+
+      if (toDate) {
+        const end = new Date(toDate);
+        end.setHours(0, 0, 0, 0);
+        if (due > end) return false;
+      }
+
+      return true;
+    });
+  }, [installments, fromDate, toDate]);
 
   const filtered = useMemo(() => {
-    let result = installments;
+    let result = dateFiltered;
 
     if (filterCustomer !== null)
       result = result.filter((i) => i.plan.customer.id === filterCustomer);
@@ -176,6 +279,8 @@ export function InstallmentsView({
       result = result.filter(
         (i) =>
           i.plan.customer.name.toLowerCase().includes(q) ||
+          i.plan.customer.phone.toLowerCase().includes(q) ||
+          String(i.plan.customer.id).includes(q) ||
           i.plan.item.name.toLowerCase().includes(q) ||
           String(i.plan.id).includes(q) ||
           String(i.installmentNumber).includes(q) ||
@@ -185,7 +290,7 @@ export function InstallmentsView({
 
     return result;
   }, [
-    installments,
+    dateFiltered,
     search,
     filterCustomer,
     filterItem,
@@ -193,17 +298,199 @@ export function InstallmentsView({
     filterStatus,
   ]);
 
+  const sortedInstallments = useMemo(() => {
+    const rows = [...filtered];
+
+    rows.sort((a, b) => {
+      let left: string | number = "";
+      let right: string | number = "";
+
+      if (sortKey === "plan") {
+        left = a.plan.id;
+        right = b.plan.id;
+      } else if (sortKey === "customer") {
+        left = a.plan.customer.name.toLowerCase();
+        right = b.plan.customer.name.toLowerCase();
+      } else if (sortKey === "item") {
+        left = a.plan.item.name.toLowerCase();
+        right = b.plan.item.name.toLowerCase();
+      } else if (sortKey === "installment") {
+        left = a.installmentNumber;
+        right = b.installmentNumber;
+      } else if (sortKey === "amount") {
+        left = a.amount;
+        right = b.amount;
+      } else if (sortKey === "paid") {
+        left = a.paidAmount;
+        right = b.paidAmount;
+      } else if (sortKey === "status") {
+        left = a.status.toLowerCase();
+        right = b.status.toLowerCase();
+      } else {
+        left = new Date(a.dueDate).getTime();
+        right = new Date(b.dueDate).getTime();
+      }
+
+      if (left < right) return sortDirection === "asc" ? -1 : 1;
+      if (left > right) return sortDirection === "asc" ? 1 : -1;
+      return a.installmentNumber - b.installmentNumber;
+    });
+
+    return rows;
+  }, [filtered, sortDirection, sortKey]);
+
+  const rangeStats = useMemo(() => {
+    const total = dateFiltered.reduce((sum, i) => sum + i.amount, 0);
+    const collected = dateFiltered.reduce((sum, i) => sum + i.paidAmount, 0);
+    const pending = Math.max(total - collected, 0);
+    const paidCount = dateFiltered.filter((i) => i.status === "paid").length;
+    return { total, collected, pending, paidCount, count: dateFiltered.length };
+  }, [dateFiltered]);
+
+  const exportRows = useMemo(() => {
+    return [...filtered]
+      .sort(
+        (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+      )
+      .map((i) => ({
+        customerId: i.plan.customer.id,
+        customerName: i.plan.customer.name,
+        customerPhone: i.plan.customer.phone,
+        item: i.plan.item.name,
+        totalItemSellingPrice: i.plan.sellingPrice,
+        planId: i.plan.id,
+        installmentNumber: i.installmentNumber,
+        dueDate: new Date(i.dueDate).toISOString().slice(0, 10),
+        amount: i.amount,
+        paidAmount: i.paidAmount,
+        pendingAmount: Math.max(i.amount - i.paidAmount, 0),
+        status: i.status,
+      }));
+  }, [filtered]);
+
+  function exportToCsv() {
+    if (exportRows.length === 0) return;
+
+    const headers = [
+      "Customer #",
+      "Customer Name",
+      "Phone",
+      "Item",
+      "Total Item Selling Price",
+      "Plan #",
+      "Installment #",
+      "Due Date",
+      "Amount",
+      "Paid",
+      "Pending",
+      "Status",
+    ];
+
+    const lines = [
+      headers.join(","),
+      ...exportRows.map((row) =>
+        [
+          row.customerId,
+          row.customerName,
+          row.customerPhone,
+          row.item,
+          row.totalItemSellingPrice,
+          row.planId,
+          row.installmentNumber,
+          row.dueDate,
+          row.amount,
+          row.paidAmount,
+          row.pendingAmount,
+          row.status,
+        ]
+          .map(escapeCsv)
+          .join(","),
+      ),
+    ];
+
+    const csv = `\uFEFF${lines.join("\n")}`;
+    downloadBlob(
+      new Blob([csv], { type: "text/csv;charset=utf-8;" }),
+      "installments-export.csv",
+    );
+  }
+
+  function exportToExcel() {
+    if (exportRows.length === 0) return;
+
+    const rowsHtml = exportRows
+      .map(
+        (row) => `
+          <tr>
+            <td>${row.customerId}</td>
+            <td>${row.customerName}</td>
+            <td>${row.customerPhone}</td>
+            <td>${row.item}</td>
+            <td>${row.totalItemSellingPrice}</td>
+            <td>${row.planId}</td>
+            <td>${row.installmentNumber}</td>
+            <td>${row.dueDate}</td>
+            <td>${row.amount}</td>
+            <td>${row.paidAmount}</td>
+            <td>${row.pendingAmount}</td>
+            <td>${row.status}</td>
+          </tr>`,
+      )
+      .join("");
+
+    const html = `
+      <table>
+        <thead>
+          <tr>
+            <th>Customer #</th>
+            <th>Customer Name</th>
+            <th>Phone</th>
+            <th>Item</th>
+            <th>Total Item Selling Price</th>
+            <th>Plan #</th>
+            <th>Installment #</th>
+            <th>Due Date</th>
+            <th>Amount</th>
+            <th>Paid</th>
+            <th>Pending</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>`;
+
+    downloadBlob(
+      new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" }),
+      "installments-export.xls",
+    );
+  }
+
   function clearAllFilters() {
     setFilterCustomer(null);
     setFilterItem(null);
     setFilterPlan(null);
     setFilterStatus(null);
     setSearch("");
+    applyDatePreset("this-month");
   }
 
   const selectedInstallment = installments.find(
     (i) => i.id === selectedInstallmentId,
   );
+
+  function SortIcon({ forKey }: { forKey: SortKey }) {
+    if (sortKey !== forKey) {
+      return <ArrowUpDown size={13} className="text-slate-400" />;
+    }
+
+    return sortDirection === "asc" ? (
+      <ArrowUp size={13} className="text-slate-600" />
+    ) : (
+      <ArrowDown size={13} className="text-slate-600" />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -231,6 +518,73 @@ export function InstallmentsView({
         </Button>
       </div>
 
+      <Card className="p-4 sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Due Date Range
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={datePreset === "this-month" ? "default" : "outline"}
+                className={
+                  datePreset === "this-month"
+                    ? "bg-slate-900 hover:bg-slate-800"
+                    : "border-slate-300"
+                }
+                onClick={() => applyDatePreset("this-month")}
+              >
+                This Month
+              </Button>
+              <Button
+                size="sm"
+                variant={datePreset === "last-30" ? "default" : "outline"}
+                className={
+                  datePreset === "last-30"
+                    ? "bg-slate-900 hover:bg-slate-800"
+                    : "border-slate-300"
+                }
+                onClick={() => applyDatePreset("last-30")}
+              >
+                Last 30 Days
+              </Button>
+              <Button
+                size="sm"
+                variant={datePreset === "all" ? "default" : "outline"}
+                className={
+                  datePreset === "all"
+                    ? "bg-slate-900 hover:bg-slate-800"
+                    : "border-slate-300"
+                }
+                onClick={() => applyDatePreset("all")}
+              >
+                All Time
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Input
+              type="date"
+              value={fromDate}
+              onChange={(e) => {
+                setDatePreset("custom");
+                setFromDate(e.target.value);
+              }}
+            />
+            <Input
+              type="date"
+              value={toDate}
+              onChange={(e) => {
+                setDatePreset("custom");
+                setToDate(e.target.value);
+              }}
+            />
+          </div>
+        </div>
+      </Card>
+
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card className="p-4 sm:p-5">
           <div className="flex items-center gap-3">
@@ -242,7 +596,7 @@ export function InstallmentsView({
                 Total Installments
               </p>
               <p className="text-xl font-bold text-slate-900">
-                {installments.length}
+                {rangeStats.count}
               </p>
             </div>
           </div>
@@ -256,7 +610,7 @@ export function InstallmentsView({
             <div className="min-w-0">
               <p className="truncate text-xs text-slate-500">Paid</p>
               <p className="text-xl font-bold text-slate-900">
-                {totals.paidCount}
+                {rangeStats.paidCount}
               </p>
             </div>
           </div>
@@ -270,7 +624,7 @@ export function InstallmentsView({
             <div className="min-w-0">
               <p className="truncate text-xs text-slate-500">Collected</p>
               <p className="text-xl font-bold text-slate-900">
-                {formatCurrency(totals.paid)}
+                {formatCurrency(rangeStats.collected)}
               </p>
             </div>
           </div>
@@ -284,7 +638,7 @@ export function InstallmentsView({
             <div className="min-w-0">
               <p className="truncate text-xs text-slate-500">Pending</p>
               <p className="text-xl font-bold text-slate-900">
-                {formatCurrency(totals.pending)}
+                {formatCurrency(rangeStats.pending)}
               </p>
             </div>
           </div>
@@ -301,7 +655,7 @@ export function InstallmentsView({
                 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
               />
               <Input
-                placeholder="Search by customer, item, plan id, installment # or status..."
+                placeholder="Search by customer, phone, item, plan id, installment # or status..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 text-sm"
@@ -312,6 +666,24 @@ export function InstallmentsView({
                 Clear all
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-slate-300"
+              onClick={exportToCsv}
+              disabled={exportRows.length === 0}
+            >
+              Export CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-slate-300"
+              onClick={exportToExcel}
+              disabled={exportRows.length === 0}
+            >
+              Export Excel
+            </Button>
           </div>
 
           {/* Filter row */}
@@ -481,42 +853,114 @@ export function InstallmentsView({
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {sortedInstallments.length === 0 ? (
           <div className="p-10 text-center">
             <AlertCircle size={22} className="mx-auto mb-2 text-slate-400" />
-            <p className="text-sm font-medium text-slate-600">
-              No installments found
-            </p>
+            {dateFiltered.length === 0 ? (
+              <>
+                <p className="text-sm font-medium text-slate-600">
+                  No installments in selected date range
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => applyDatePreset("this-month")}
+                >
+                  Reset to this month
+                </Button>
+              </>
+            ) : (
+              <p className="text-sm font-medium text-slate-600">
+                No installments match current filters
+              </p>
+            )}
           </div>
         ) : (
           <>
             <div className="hidden overflow-x-auto md:block">
-              <table className="w-full">
-                <thead className="border-b border-slate-200 bg-slate-50">
+              <table className="w-full min-w-245">
+                <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50">
                   <tr>
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Plan
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("plan")}
+                        className="inline-flex items-center gap-1.5"
+                      >
+                        Plan
+                        <SortIcon forKey="plan" />
+                      </button>
                     </th>
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Customer
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("customer")}
+                        className="inline-flex items-center gap-1.5"
+                      >
+                        Customer
+                        <SortIcon forKey="customer" />
+                      </button>
                     </th>
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Item
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("item")}
+                        className="inline-flex items-center gap-1.5"
+                      >
+                        Item
+                        <SortIcon forKey="item" />
+                      </button>
                     </th>
                     <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Installment
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("installment")}
+                        className="inline-flex items-center gap-1.5"
+                      >
+                        Installment
+                        <SortIcon forKey="installment" />
+                      </button>
                     </th>
                     <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Amount
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("amount")}
+                        className="inline-flex items-center gap-1.5"
+                      >
+                        Amount
+                        <SortIcon forKey="amount" />
+                      </button>
                     </th>
                     <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Paid
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("paid")}
+                        className="inline-flex items-center gap-1.5"
+                      >
+                        Paid
+                        <SortIcon forKey="paid" />
+                      </button>
                     </th>
                     <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Due
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("due")}
+                        className="inline-flex items-center gap-1.5"
+                      >
+                        Due
+                        <SortIcon forKey="due" />
+                      </button>
                     </th>
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Status
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("status")}
+                        className="inline-flex items-center gap-1.5"
+                      >
+                        Status
+                        <SortIcon forKey="status" />
+                      </button>
                     </th>
                     <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Action
@@ -524,7 +968,7 @@ export function InstallmentsView({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filtered.map((installment) => {
+                  {sortedInstallments.map((installment) => {
                     const remaining = Math.max(
                       installment.amount - installment.paidAmount,
                       0,
@@ -551,33 +995,45 @@ export function InstallmentsView({
                           </div>
                         </td>
                         <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm text-slate-900">
-                              {installment.plan.customer.name}
-                            </span>
-                            <EntityViewButton
-                              label={`customer ${installment.plan.customer.name}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setViewingCustomerId(
-                                  installment.plan.customer.id,
-                                );
-                              }}
-                            />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm text-slate-900">
+                                {installment.plan.customer.name}
+                              </span>
+                              <EntityViewButton
+                                label={`customer ${installment.plan.customer.name}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setViewingCustomerId(
+                                    installment.plan.customer.id,
+                                  );
+                                }}
+                              />
+                            </div>
+                            <p className="text-xs text-slate-500">
+                              #{installment.plan.customer.id} ·{" "}
+                              {installment.plan.customer.phone}
+                            </p>
                           </div>
                         </td>
                         <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm text-slate-700">
-                              {installment.plan.item.name}
-                            </span>
-                            <EntityViewButton
-                              label={`item ${installment.plan.item.name}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setViewingItemId(installment.plan.item.id);
-                              }}
-                            />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm text-slate-700">
+                                {installment.plan.item.name}
+                              </span>
+                              <EntityViewButton
+                                label={`item ${installment.plan.item.name}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setViewingItemId(installment.plan.item.id);
+                                }}
+                              />
+                            </div>
+                            <p className="text-xs text-slate-500">
+                              Selling:{" "}
+                              {formatCurrency(installment.plan.sellingPrice)}
+                            </p>
                           </div>
                         </td>
                         <td className="px-5 py-3.5 text-center text-sm text-slate-700">
@@ -641,7 +1097,7 @@ export function InstallmentsView({
             </div>
 
             <div className="divide-y divide-slate-100 md:hidden">
-              {filtered.map((installment) => {
+              {sortedInstallments.map((installment) => {
                 const remaining = Math.max(
                   installment.amount - installment.paidAmount,
                   0,
@@ -682,6 +1138,10 @@ export function InstallmentsView({
                             }}
                           />
                         </div>
+                        <p className="truncate text-[11px] text-slate-500">
+                          #{installment.plan.customer.id} ·{" "}
+                          {installment.plan.customer.phone}
+                        </p>
                         <div className="flex items-center gap-1.5">
                           <p className="truncate text-xs text-slate-500">
                             {installment.plan.item.name}
@@ -694,6 +1154,10 @@ export function InstallmentsView({
                             }}
                           />
                         </div>
+                        <p className="truncate text-[11px] text-slate-500">
+                          Selling:{" "}
+                          {formatCurrency(installment.plan.sellingPrice)}
+                        </p>
                         <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
                           <Calendar size={12} />
                           Due {formatDate(installment.dueDate)}
@@ -761,6 +1225,28 @@ export function InstallmentsView({
                   </div>
                 );
               })}
+            </div>
+
+            <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-5 py-3">
+              <p className="text-xs text-slate-500">
+                {sortedInstallments.length} installment
+                {sortedInstallments.length !== 1 ? "s" : ""}
+                {search || activeFilters > 0 ? " matching filters" : ""}
+              </p>
+              <p className="text-xs font-semibold text-slate-700">
+                Collected:{" "}
+                {formatCurrency(
+                  sortedInstallments.reduce((s, i) => s + i.paidAmount, 0),
+                )}
+                {" · "}
+                Pending:{" "}
+                {formatCurrency(
+                  sortedInstallments.reduce(
+                    (s, i) => s + Math.max(i.amount - i.paidAmount, 0),
+                    0,
+                  ),
+                )}
+              </p>
             </div>
           </>
         )}
