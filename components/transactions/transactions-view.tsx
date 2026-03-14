@@ -26,6 +26,11 @@ interface Transaction {
   amount: number;
   description: string | null;
   transactionDate: string | Date;
+  installment?: {
+    id: string;
+    installmentNumber: number;
+    status: string;
+  };
   plan: {
     customer: { id: number; name: string };
     item: { id: number; name: string };
@@ -290,6 +295,9 @@ export function TransactionsView({
                       Item
                     </th>
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Installment
+                    </th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Note
                     </th>
                     <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -341,6 +349,16 @@ export function TransactionsView({
                             }}
                           />
                         </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-sm text-slate-500">
+                        {t.installment ? (
+                          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
+                            #{t.installment.installmentNumber} (
+                            {t.installment.status})
+                          </span>
+                        ) : (
+                          <span className="select-none">-</span>
+                        )}
                       </td>
                       <td className="px-5 py-3.5 text-sm text-slate-400">
                         {t.description ?? (
@@ -401,6 +419,12 @@ export function TransactionsView({
                             onClick={() => setViewingItemId(t.plan.item.id)}
                           />
                         </div>
+                        {t.installment ? (
+                          <p className="mt-1 text-[11px] text-slate-500">
+                            Installment #{t.installment.installmentNumber} (
+                            {t.installment.status})
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                     <div className="shrink-0 text-right">

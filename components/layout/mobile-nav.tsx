@@ -9,6 +9,7 @@ import {
   Users,
   Package,
   FileText,
+  ListChecks,
   Settings,
   LogOut,
   BarChart3,
@@ -23,6 +24,7 @@ const MENU_ITEMS = [
   { icon: Package, label: "Items", href: "/dashboard/items" },
   { icon: Users, label: "Customers", href: "/dashboard/customers" },
   { icon: BarChart3, label: "Plans", href: "/dashboard/ledger" },
+  { icon: ListChecks, label: "Installments", href: "/dashboard/installments" },
   { icon: FileText, label: "Transactions", href: "/dashboard/transactions" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ];

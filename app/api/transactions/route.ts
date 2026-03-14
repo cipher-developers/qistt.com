@@ -9,17 +9,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { planId, customerId, amount, description } = await request.json();
+    const { installmentId, amount, description } = await request.json();
 
-    const planIdValue = Number(planId);
-    const customerIdValue = Number(customerId);
+    const installmentIdValue = String(installmentId || "").trim();
     const amountValue = Number(amount);
 
     if (
-      !Number.isInteger(planIdValue) ||
-      planIdValue <= 0 ||
-      !Number.isInteger(customerIdValue) ||
-      customerIdValue <= 0 ||
+      !installmentIdValue ||
       !Number.isFinite(amountValue) ||
       amountValue <= 0
     ) {
@@ -29,36 +25,90 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify plan belongs to tenant
-    const plan = await prisma.installmentPlan.findFirst({
+    const installment = await prisma.installment.findFirst({
       where: {
-        id: planIdValue,
-        tenantId: tenant.id,
-      },
-    });
-
-    if (!plan) {
-      return NextResponse.json(
-        { error: "Plan not found" },
-        { status: 404 }
-      );
-    }
-
-    // Create transaction
-    const transaction = await prisma.transaction.create({
-      data: {
-        planId: planIdValue,
-        customerId: customerIdValue,
-        tenantId: tenant.id,
-        amount: amountValue,
-        description: description || null,
-        transactionDate: new Date(),
+        id: installmentIdValue,
+        plan: {
+          tenantId: tenant.id,
+        },
       },
       include: {
         plan: {
-          include: { customer: true, item: true },
+          select: {
+            id: true,
+            customerId: true,
+          },
         },
       },
+    });
+
+    if (!installment) {
+      return NextResponse.json({ error: "Installment not found" }, { status: 404 });
+    }
+
+    const remainingInstallment = Math.max(
+      installment.amount - installment.paidAmount,
+      0,
+    );
+
+    if (remainingInstallment <= 0) {
+      return NextResponse.json(
+        { error: "This installment is already fully paid" },
+        { status: 400 },
+      );
+    }
+
+    if (amountValue > remainingInstallment) {
+      return NextResponse.json(
+        {
+          error: `Amount exceeds remaining installment balance (${remainingInstallment.toFixed(2)})`,
+        },
+        { status: 400 },
+      );
+    }
+
+    const transaction = await prisma.$transaction(async (tx) => {
+      const createdTransaction = await tx.transaction.create({
+        data: {
+          planId: installment.planId,
+          installmentId: installment.id,
+          customerId: installment.plan.customerId,
+          tenantId: tenant.id,
+          amount: amountValue,
+          description: description || null,
+          transactionDate: new Date(),
+        },
+        include: {
+          plan: {
+            include: { customer: true, item: true },
+          },
+          installment: {
+            select: {
+              id: true,
+              installmentNumber: true,
+              status: true,
+            },
+          },
+        },
+      });
+
+      const nextPaidAmount = installment.paidAmount + amountValue;
+      const nextStatus =
+        nextPaidAmount >= installment.amount
+          ? "paid"
+          : nextPaidAmount > 0
+            ? "partial"
+            : "pending";
+
+      await tx.installment.update({
+        where: { id: installment.id },
+        data: {
+          paidAmount: nextPaidAmount,
+          status: nextStatus,
+        },
+      });
+
+      return createdTransaction;
     });
 
     return NextResponse.json(
@@ -88,6 +138,13 @@ export async function GET(request: NextRequest) {
       include: {
         plan: {
           include: { customer: true, item: true },
+        },
+        installment: {
+          select: {
+            id: true,
+            installmentNumber: true,
+            status: true,
+          },
         },
       },
       orderBy: { transactionDate: "desc" },

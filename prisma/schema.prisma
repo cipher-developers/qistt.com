@@ -127,6 +127,7 @@ model Installment {
   amount          Float
   paidAmount      Float    @default(0)
   status          String   @default("pending") // pending, partial, paid
+  transactions    Transaction[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -138,6 +139,8 @@ model Transaction {
   id              Int      @id @default(autoincrement())
   planId          Int
   plan            InstallmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  installmentId   String
+  installment     Installment @relation(fields: [installmentId], references: [id], onDelete: Cascade)
   customerId      Int
   customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   tenantId        String
@@ -150,6 +153,7 @@ model Transaction {
 
   @@index([tenantId])
   @@index([planId])
+  @@index([installmentId])
   @@index([customerId])
 }
 

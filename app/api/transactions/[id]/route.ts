@@ -34,6 +34,7 @@ export async function GET(
         transactionDate: true,
         createdAt: true,
         planId: true,
+        installmentId: true,
         customer: {
           select: {
             id: true,
@@ -59,6 +60,16 @@ export async function GET(
                 sku: true,
               },
             },
+          },
+        },
+        installment: {
+          select: {
+            id: true,
+            installmentNumber: true,
+            amount: true,
+            paidAmount: true,
+            status: true,
+            dueDate: true,
           },
         },
       },

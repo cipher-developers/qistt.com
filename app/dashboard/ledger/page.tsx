@@ -44,11 +44,22 @@ export default async function PlansWorkspacePage() {
           transactionDate: true,
         },
       },
+      installments: {
+        select: {
+          id: true,
+          installmentNumber: true,
+          dueDate: true,
+          amount: true,
+          paidAmount: true,
+          status: true,
+        },
+        orderBy: {
+          installmentNumber: "asc",
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return (
-    <PlansView plans={plans} tenantId={tenant?.id} tenantName={tenant?.name} />
-  );
+  return <PlansView plans={plans} tenantName={tenant?.name} />;
 }

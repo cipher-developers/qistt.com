@@ -23,6 +23,13 @@ export default async function TransactionsPage({
             item: true,
           },
         },
+        installment: {
+          select: {
+            id: true,
+            installmentNumber: true,
+            status: true,
+          },
+        },
       },
       orderBy: { transactionDate: "desc" },
       take: 200,

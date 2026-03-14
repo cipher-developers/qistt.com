@@ -2,13 +2,11 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   BarChart3,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  CreditCard,
   Layers3,
   Plus,
   Search,
@@ -25,18 +23,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { CustomerDetailSheet } from "@/components/customers/customer-detail-sheet";
 import { ItemDetailSheet } from "@/components/items/item-detail-sheet";
+import { PlanDetailSheet } from "@/components/plans/plan-detail-sheet";
 import { EntityViewButton } from "@/components/shared/entity-view-button";
 import { formatCurrency } from "@/lib/utils";
-import { TransactionForm } from "@/components/transactions/transaction-form";
 
 type PlanRecord = {
   id: number;
@@ -48,6 +39,14 @@ type PlanRecord = {
   startDate: string | Date;
   status: string;
   createdAt: string | Date;
+  installments: {
+    id: string;
+    installmentNumber: number;
+    dueDate: string | Date;
+    amount: number;
+    paidAmount: number;
+    status: string;
+  }[];
   customer: {
     id: number;
     name: string;
@@ -112,25 +111,25 @@ function formatDate(date: string | Date) {
 
 export function PlansView({
   plans,
-  tenantId,
   tenantName,
 }: {
   plans: PlanRecord[];
-  tenantId?: string;
   tenantName?: string;
 }) {
-  const router = useRouter();
   const [search, setSearch] = useState("");
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
   const [revenueFilter, setRevenueFilter] = useState<RevenueFilter>("all");
   const [customerFilter, setCustomerFilter] = useState("all");
   const [itemFilter, setItemFilter] = useState("all");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [selectedPlan, setSelectedPlan] = useState<PlanRecord | null>(null);
+  const [expandedPlanRows, setExpandedPlanRows] = useState<Set<number>>(
+    new Set(),
+  );
   const [viewingCustomerId, setViewingCustomerId] = useState<number | null>(
     null,
   );
   const [viewingItemId, setViewingItemId] = useState<number | null>(null);
+  const [viewingPlanId, setViewingPlanId] = useState<number | null>(null);
 
   const customers = useMemo(() => {
     const map = new Map<number, string>();
@@ -252,6 +251,26 @@ export function PlansView({
       else next.add(groupKey);
       return next;
     });
+  }
+
+  function togglePlan(planId: number) {
+    setExpandedPlanRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(planId)) {
+        next.delete(planId);
+      } else {
+        next.add(planId);
+      }
+      return next;
+    });
+  }
+
+  function installmentStatusTone(status: string) {
+    if (status === "paid")
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    if (status === "partial")
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    return "bg-slate-50 text-slate-700 border-slate-200";
   }
 
   function clearFilters() {
@@ -485,7 +504,7 @@ export function PlansView({
                       Progress
                     </th>
                     <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Action
+                      Installments
                     </th>
                   </tr>
                 </thead>
@@ -493,94 +512,170 @@ export function PlansView({
                   {filteredPlans.map((plan) => {
                     const metrics = getPlanMetrics(plan);
                     const tone = getProgressTone(metrics.progress);
-                    const canRecordTransaction = metrics.pendingRevenue > 0;
+                    const hasPendingInstallments = plan.installments.some(
+                      (installment) => installment.status !== "paid",
+                    );
+                    const expanded = expandedPlanRows.has(plan.id);
 
                     return (
-                      <tr key={plan.id} className="hover:bg-slate-50/70">
-                        <td className="px-5 py-3.5 text-sm font-semibold text-slate-700">
-                          #{plan.id}
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-start gap-2">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-slate-900">
-                                {plan.customer.name}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                {plan.customer.phone}
-                              </p>
-                            </div>
-                            <EntityViewButton
-                              label={`customer ${plan.customer.name}`}
-                              className="mt-0.5 shrink-0"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setViewingCustomerId(plan.customer.id);
-                              }}
-                            />
-                          </div>
-                        </td>
-                        <td className="px-5 py-3.5 text-sm text-slate-600">
-                          <div className="flex items-start gap-2">
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium text-slate-700">
-                                {plan.item.name}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                {plan.months} months
-                              </p>
-                            </div>
-                            <EntityViewButton
-                              label={`item ${plan.item.name}`}
-                              className="mt-0.5 shrink-0"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setViewingItemId(plan.item.id);
-                              }}
-                            />
-                          </div>
-                        </td>
-                        <td className="px-5 py-3.5 text-right text-sm font-semibold text-slate-900">
-                          {formatCurrency(metrics.totalRevenue)}
-                        </td>
-                        <td className="px-5 py-3.5 text-right text-sm font-semibold text-emerald-600">
-                          {formatCurrency(metrics.generatedRevenue)}
-                        </td>
-                        <td className="px-5 py-3.5 text-right text-sm font-semibold text-rose-600">
-                          {formatCurrency(metrics.pendingRevenue)}
-                        </td>
-                        <td className="px-5 py-3.5 text-sm text-slate-600">
-                          {formatDate(plan.createdAt)}
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <div className="space-y-1">
-                            <div className="h-1.5 rounded-full bg-slate-200">
-                              <div
-                                className={`h-1.5 rounded-full ${tone}`}
-                                style={{
-                                  width: getProgressWidth(metrics.progress),
+                      <>
+                        <tr key={plan.id} className="hover:bg-slate-50/70">
+                          <td className="px-5 py-3.5 text-sm font-semibold text-slate-700">
+                            <div className="flex items-center gap-1.5">
+                              #{plan.id}
+                              <EntityViewButton
+                                label={`plan ${plan.id}`}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setViewingPlanId(plan.id);
                                 }}
                               />
                             </div>
-                            <p className="text-xs text-slate-500">
-                              {metrics.progress.toFixed(0)}%
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-5 py-3.5 text-right">
-                          <Button
-                            size="sm"
-                            className="bg-slate-900 hover:bg-slate-800"
-                            disabled={!canRecordTransaction}
-                            onClick={() => setSelectedPlan(plan)}
-                          >
-                            <CreditCard size={14} />
-                            {canRecordTransaction
-                              ? "Record Transaction"
-                              : "Fully Paid"}
-                          </Button>
-                        </td>
-                      </tr>
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-start gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-slate-900">
+                                  {plan.customer.name}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                  {plan.customer.phone}
+                                </p>
+                              </div>
+                              <EntityViewButton
+                                label={`customer ${plan.customer.name}`}
+                                className="mt-0.5 shrink-0"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setViewingCustomerId(plan.customer.id);
+                                }}
+                              />
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5 text-sm text-slate-600">
+                            <div className="flex items-start gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-slate-700">
+                                  {plan.item.name}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                  {plan.months} months
+                                </p>
+                              </div>
+                              <EntityViewButton
+                                label={`item ${plan.item.name}`}
+                                className="mt-0.5 shrink-0"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setViewingItemId(plan.item.id);
+                                }}
+                              />
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5 text-right text-sm font-semibold text-slate-900">
+                            {formatCurrency(metrics.totalRevenue)}
+                          </td>
+                          <td className="px-5 py-3.5 text-right text-sm font-semibold text-emerald-600">
+                            {formatCurrency(metrics.generatedRevenue)}
+                          </td>
+                          <td className="px-5 py-3.5 text-right text-sm font-semibold text-rose-600">
+                            {formatCurrency(metrics.pendingRevenue)}
+                          </td>
+                          <td className="px-5 py-3.5 text-sm text-slate-600">
+                            {formatDate(plan.createdAt)}
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <div className="space-y-1">
+                              <div className="h-1.5 rounded-full bg-slate-200">
+                                <div
+                                  className={`h-1.5 rounded-full ${tone}`}
+                                  style={{
+                                    width: getProgressWidth(metrics.progress),
+                                  }}
+                                />
+                              </div>
+                              <p className="text-xs text-slate-500">
+                                {metrics.progress.toFixed(0)}%
+                              </p>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5 text-right">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-slate-300"
+                              onClick={() => togglePlan(plan.id)}
+                            >
+                              {expanded ? (
+                                <ChevronUp size={14} />
+                              ) : (
+                                <ChevronDown size={14} />
+                              )}
+                              {expanded ? "Hide" : "Show"}
+                            </Button>
+                          </td>
+                        </tr>
+
+                        {expanded ? (
+                          <tr>
+                            <td
+                              colSpan={9}
+                              className="bg-slate-50/60 px-5 py-4"
+                            >
+                              <div className="space-y-2">
+                                {plan.installments.map((installment) => {
+                                  const remaining = Math.max(
+                                    installment.amount - installment.paidAmount,
+                                    0,
+                                  );
+
+                                  return (
+                                    <div
+                                      key={installment.id}
+                                      className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5"
+                                    >
+                                      <div className="flex items-center gap-4 text-sm">
+                                        <p className="font-semibold text-slate-700">
+                                          Installment #
+                                          {installment.installmentNumber}
+                                        </p>
+                                        <p className="text-slate-500">
+                                          Due {formatDate(installment.dueDate)}
+                                        </p>
+                                        <p className="text-slate-700">
+                                          {formatCurrency(
+                                            installment.paidAmount,
+                                          )}{" "}
+                                          / {formatCurrency(installment.amount)}
+                                        </p>
+                                        <span
+                                          className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${installmentStatusTone(
+                                            installment.status,
+                                          )}`}
+                                        >
+                                          {installment.status}
+                                        </span>
+                                      </div>
+                                      <Button
+                                        size="sm"
+                                        className="bg-slate-900 hover:bg-slate-800"
+                                        disabled={remaining <= 0}
+                                        asChild
+                                      >
+                                        <Link
+                                          href={`/dashboard/installments?installment=${installment.id}`}
+                                        >
+                                          {remaining > 0 ? "Record" : "Paid"}
+                                        </Link>
+                                      </Button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </td>
+                          </tr>
+                        ) : null}
+                      </>
                     );
                   })}
                 </tbody>
@@ -591,15 +686,24 @@ export function PlansView({
               {filteredPlans.map((plan) => {
                 const metrics = getPlanMetrics(plan);
                 const tone = getProgressTone(metrics.progress);
-                const canRecordTransaction = metrics.pendingRevenue > 0;
+                const expanded = expandedPlanRows.has(plan.id);
 
                 return (
                   <div key={plan.id} className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 truncate">
-                          Plan ID #{plan.id}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 truncate">
+                            Plan ID #{plan.id}
+                          </p>
+                          <EntityViewButton
+                            label={`plan ${plan.id}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setViewingPlanId(plan.id);
+                            }}
+                          />
+                        </div>
                         <div className="mt-1 flex items-center gap-2">
                           <p className="truncate text-sm font-semibold text-slate-900">
                             {plan.customer.name}
@@ -632,11 +736,11 @@ export function PlansView({
                       </div>
                       <Button
                         size="sm"
-                        className="bg-slate-900 hover:bg-slate-800"
-                        disabled={!canRecordTransaction}
-                        onClick={() => setSelectedPlan(plan)}
+                        variant="outline"
+                        className="border-slate-300"
+                        onClick={() => togglePlan(plan.id)}
                       >
-                        {canRecordTransaction ? "Record" : "Paid"}
+                        {expanded ? "Hide" : "Show"}
                       </Button>
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-xs">
@@ -670,6 +774,56 @@ export function PlansView({
                         {metrics.progress.toFixed(0)}% progress
                       </p>
                     </div>
+
+                    {expanded ? (
+                      <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        {plan.installments.map((installment) => {
+                          const remaining = Math.max(
+                            installment.amount - installment.paidAmount,
+                            0,
+                          );
+
+                          return (
+                            <div
+                              key={installment.id}
+                              className="space-y-1 rounded-lg border border-slate-200 bg-white p-2.5"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-xs font-semibold text-slate-700">
+                                  Inst #{installment.installmentNumber}
+                                </p>
+                                <span
+                                  className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${installmentStatusTone(
+                                    installment.status,
+                                  )}`}
+                                >
+                                  {installment.status}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-500">
+                                Due {formatDate(installment.dueDate)}
+                              </p>
+                              <p className="text-xs text-slate-700">
+                                {formatCurrency(installment.paidAmount)} /{" "}
+                                {formatCurrency(installment.amount)}
+                              </p>
+                              <Button
+                                size="sm"
+                                className="mt-1 w-full bg-slate-900 hover:bg-slate-800"
+                                disabled={remaining <= 0}
+                                asChild
+                              >
+                                <Link
+                                  href={`/dashboard/installments?installment=${installment.id}`}
+                                >
+                                  {remaining > 0 ? "Record" : "Paid"}
+                                </Link>
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}
@@ -836,15 +990,13 @@ export function PlansView({
                                   <Button
                                     size="sm"
                                     className="bg-slate-900 hover:bg-slate-800"
-                                    disabled={metrics.pendingRevenue <= 0}
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      setSelectedPlan(plan);
-                                    }}
+                                    asChild
                                   >
-                                    {metrics.pendingRevenue > 0
-                                      ? "Record"
-                                      : "Paid"}
+                                    <Link
+                                      href={`/dashboard/installments?plan=${plan.id}`}
+                                    >
+                                      View Installments
+                                    </Link>
                                   </Button>
                                 </td>
                               </tr>
@@ -859,37 +1011,6 @@ export function PlansView({
           </div>
         )}
       </Card>
-
-      <Dialog
-        open={Boolean(selectedPlan)}
-        onOpenChange={(open) => !open && setSelectedPlan(null)}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Record Transaction</DialogTitle>
-            <DialogDescription>
-              Add a payment for this specific installment plan.
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedPlan ? (
-            <TransactionForm
-              tenantId={tenantId}
-              plans={[selectedPlan]}
-              initialPlanId={selectedPlan.id}
-              lockPlan
-              submitLabel="Record Transaction"
-              onSuccess={(createdTransaction) => {
-                setSelectedPlan(null);
-                router.push(
-                  `/dashboard/transactions?transaction=${createdTransaction.id}`,
-                );
-              }}
-              onCancel={() => setSelectedPlan(null)}
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
 
       <CustomerDetailSheet
         open={Boolean(viewingCustomerId)}
@@ -907,6 +1028,16 @@ export function PlansView({
         onOpenChange={(open) => {
           if (!open) {
             setViewingItemId(null);
+          }
+        }}
+      />
+
+      <PlanDetailSheet
+        open={Boolean(viewingPlanId)}
+        planId={viewingPlanId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingPlanId(null);
           }
         }}
       />
