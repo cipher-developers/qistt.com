@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatCurrency } from "@/lib/utils";
 import { TransactionForm } from "@/components/transactions/transaction-form";
+import { TransactionDetailSheet } from "@/components/transactions/transaction-detail-sheet";
 import { EntityViewButton } from "@/components/shared/entity-view-button";
 import { CustomerDetailSheet } from "@/components/customers/customer-detail-sheet";
 import { ItemDetailSheet } from "@/components/items/item-detail-sheet";
@@ -45,6 +46,10 @@ interface InstallmentRecord {
   amount: number;
   paidAmount: number;
   status: string;
+  transactions: {
+    id: number;
+    transactionDate: string | Date;
+  }[];
   plan: {
     id: number;
     customerId: number;
@@ -104,6 +109,9 @@ export function InstallmentsView({
   );
   const [viewingItemId, setViewingItemId] = useState<number | null>(null);
   const [viewingPlanId, setViewingPlanId] = useState<number | null>(null);
+  const [viewingTransactionId, setViewingTransactionId] = useState<
+    number | null
+  >(null);
   const router = useRouter();
 
   // Derive unique filter options
@@ -521,6 +529,10 @@ export function InstallmentsView({
                       installment.amount - installment.paidAmount,
                       0,
                     );
+                    const latestTransactionId = installment.transactions[0]?.id;
+                    const canViewInvoice =
+                      installment.status !== "pending" &&
+                      Boolean(latestTransactionId);
 
                     return (
                       <tr key={installment.id} className="hover:bg-slate-50/70">
@@ -581,23 +593,45 @@ export function InstallmentsView({
                           {formatDate(installment.dueDate)}
                         </td>
                         <td className="px-5 py-3.5">
-                          <span
-                            className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${getStatusTone(installment.status)}`}
+                          <button
+                            type="button"
+                            disabled={!canViewInvoice}
+                            onClick={() => {
+                              if (latestTransactionId) {
+                                setViewingTransactionId(latestTransactionId);
+                              }
+                            }}
+                            className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${getStatusTone(installment.status)} ${canViewInvoice ? "cursor-pointer hover:opacity-85" : "cursor-default"}`}
                           >
                             {installment.status}
-                          </span>
+                          </button>
                         </td>
-                        <td className="px-5 py-3.5 text-right">
-                          <Button
-                            size="sm"
-                            className="bg-slate-900 hover:bg-slate-800"
-                            disabled={remaining <= 0}
-                            onClick={() =>
-                              setSelectedInstallmentId(installment.id)
-                            }
-                          >
-                            {remaining > 0 ? "Record" : "Paid"}
-                          </Button>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-slate-300"
+                              disabled={!canViewInvoice}
+                              onClick={() => {
+                                if (latestTransactionId) {
+                                  setViewingTransactionId(latestTransactionId);
+                                }
+                              }}
+                            >
+                              View Invoice
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="bg-slate-900 hover:bg-slate-800"
+                              disabled={remaining <= 0}
+                              onClick={() =>
+                                setSelectedInstallmentId(installment.id)
+                              }
+                            >
+                              {remaining > 0 ? "Record" : "Paid"}
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -612,6 +646,10 @@ export function InstallmentsView({
                   installment.amount - installment.paidAmount,
                   0,
                 );
+                const latestTransactionId = installment.transactions[0]?.id;
+                const canViewInvoice =
+                  installment.status !== "pending" &&
+                  Boolean(latestTransactionId);
 
                 return (
                   <div key={installment.id} className="space-y-3 p-4">
@@ -661,14 +699,31 @@ export function InstallmentsView({
                           Due {formatDate(installment.dueDate)}
                         </p>
                       </div>
-                      <Button
-                        size="sm"
-                        className="bg-slate-900 hover:bg-slate-800"
-                        disabled={remaining <= 0}
-                        onClick={() => setSelectedInstallmentId(installment.id)}
-                      >
-                        {remaining > 0 ? "Record" : "Paid"}
-                      </Button>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-slate-300"
+                          disabled={!canViewInvoice}
+                          onClick={() => {
+                            if (latestTransactionId) {
+                              setViewingTransactionId(latestTransactionId);
+                            }
+                          }}
+                        >
+                          Invoice
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-slate-900 hover:bg-slate-800"
+                          disabled={remaining <= 0}
+                          onClick={() =>
+                            setSelectedInstallmentId(installment.id)
+                          }
+                        >
+                          {remaining > 0 ? "Record" : "Paid"}
+                        </Button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 text-xs">
@@ -691,11 +746,18 @@ export function InstallmentsView({
                         </p>
                       </div>
                     </div>
-                    <span
-                      className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${getStatusTone(installment.status)}`}
+                    <button
+                      type="button"
+                      disabled={!canViewInvoice}
+                      onClick={() => {
+                        if (latestTransactionId) {
+                          setViewingTransactionId(latestTransactionId);
+                        }
+                      }}
+                      className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${getStatusTone(installment.status)} ${canViewInvoice ? "cursor-pointer hover:opacity-85" : "cursor-default"}`}
                     >
                       {installment.status}
-                    </span>
+                    </button>
                   </div>
                 );
               })}
@@ -728,9 +790,8 @@ export function InstallmentsView({
               submitLabel="Record Transaction"
               onSuccess={(createdTransaction) => {
                 setSelectedInstallmentId(null);
-                router.push(
-                  `/dashboard/transactions?transaction=${createdTransaction.id}`,
-                );
+                setViewingTransactionId(createdTransaction.id);
+                router.refresh();
               }}
               onCancel={() => setSelectedInstallmentId(null)}
             />
@@ -759,6 +820,14 @@ export function InstallmentsView({
         planId={viewingPlanId}
         onOpenChange={(open) => {
           if (!open) setViewingPlanId(null);
+        }}
+      />
+
+      <TransactionDetailSheet
+        open={Boolean(viewingTransactionId)}
+        transactionId={viewingTransactionId}
+        onOpenChange={(open) => {
+          if (!open) setViewingTransactionId(null);
         }}
       />
     </div>

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   BarChart3,
   CheckCircle2,
@@ -17,6 +18,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -27,6 +35,8 @@ import { CustomerDetailSheet } from "@/components/customers/customer-detail-shee
 import { ItemDetailSheet } from "@/components/items/item-detail-sheet";
 import { PlanDetailSheet } from "@/components/plans/plan-detail-sheet";
 import { EntityViewButton } from "@/components/shared/entity-view-button";
+import { TransactionForm } from "@/components/transactions/transaction-form";
+import { TransactionDetailSheet } from "@/components/transactions/transaction-detail-sheet";
 import { formatCurrency } from "@/lib/utils";
 
 type PlanRecord = {
@@ -46,6 +56,10 @@ type PlanRecord = {
     amount: number;
     paidAmount: number;
     status: string;
+    transactions: {
+      id: number;
+      transactionDate: string | Date;
+    }[];
   }[];
   customer: {
     id: number;
@@ -130,6 +144,38 @@ export function PlansView({
   );
   const [viewingItemId, setViewingItemId] = useState<number | null>(null);
   const [viewingPlanId, setViewingPlanId] = useState<number | null>(null);
+  const [selectedInstallmentId, setSelectedInstallmentId] = useState<
+    string | null
+  >(null);
+  const [viewingTransactionId, setViewingTransactionId] = useState<
+    number | null
+  >(null);
+  const router = useRouter();
+
+  const installmentOptions = useMemo(
+    () =>
+      plans.flatMap((plan) =>
+        plan.installments.map((installment) => ({
+          id: installment.id,
+          installmentNumber: installment.installmentNumber,
+          amount: installment.amount,
+          paidAmount: installment.paidAmount,
+          status: installment.status,
+          plan: {
+            id: plan.id,
+            customer: {
+              id: plan.customer.id,
+              name: plan.customer.name,
+            },
+            item: {
+              id: plan.item.id,
+              name: plan.item.name,
+            },
+          },
+        })),
+      ),
+    [plans],
+  );
 
   const customers = useMemo(() => {
     const map = new Map<number, string>();
@@ -628,6 +674,11 @@ export function PlansView({
                                     installment.amount - installment.paidAmount,
                                     0,
                                   );
+                                  const latestTransactionId =
+                                    installment.transactions[0]?.id;
+                                  const canViewInvoice =
+                                    installment.status !== "pending" &&
+                                    Boolean(latestTransactionId);
 
                                   return (
                                     <div
@@ -648,26 +699,52 @@ export function PlansView({
                                           )}{" "}
                                           / {formatCurrency(installment.amount)}
                                         </p>
-                                        <span
+                                        <button
+                                          type="button"
+                                          disabled={!canViewInvoice}
+                                          onClick={() => {
+                                            if (latestTransactionId) {
+                                              setViewingTransactionId(
+                                                latestTransactionId,
+                                              );
+                                            }
+                                          }}
                                           className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${installmentStatusTone(
                                             installment.status,
-                                          )}`}
+                                          )} ${canViewInvoice ? "cursor-pointer hover:opacity-85" : "cursor-default"}`}
                                         >
                                           {installment.status}
-                                        </span>
+                                        </button>
                                       </div>
-                                      <Button
-                                        size="sm"
-                                        className="bg-slate-900 hover:bg-slate-800"
-                                        disabled={remaining <= 0}
-                                        asChild
-                                      >
-                                        <Link
-                                          href={`/dashboard/installments?installment=${installment.id}`}
+                                      <div className="flex items-center gap-2">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="border-slate-300"
+                                          disabled={!canViewInvoice}
+                                          onClick={() => {
+                                            if (latestTransactionId) {
+                                              setViewingTransactionId(
+                                                latestTransactionId,
+                                              );
+                                            }
+                                          }}
+                                        >
+                                          View Invoice
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          className="bg-slate-900 hover:bg-slate-800"
+                                          disabled={remaining <= 0}
+                                          onClick={() =>
+                                            setSelectedInstallmentId(
+                                              installment.id,
+                                            )
+                                          }
                                         >
                                           {remaining > 0 ? "Record" : "Paid"}
-                                        </Link>
-                                      </Button>
+                                        </Button>
+                                      </div>
                                     </div>
                                   );
                                 })}
@@ -782,6 +859,11 @@ export function PlansView({
                             installment.amount - installment.paidAmount,
                             0,
                           );
+                          const latestTransactionId =
+                            installment.transactions[0]?.id;
+                          const canViewInvoice =
+                            installment.status !== "pending" &&
+                            Boolean(latestTransactionId);
 
                           return (
                             <div
@@ -792,13 +874,22 @@ export function PlansView({
                                 <p className="text-xs font-semibold text-slate-700">
                                   Inst #{installment.installmentNumber}
                                 </p>
-                                <span
+                                <button
+                                  type="button"
+                                  disabled={!canViewInvoice}
+                                  onClick={() => {
+                                    if (latestTransactionId) {
+                                      setViewingTransactionId(
+                                        latestTransactionId,
+                                      );
+                                    }
+                                  }}
                                   className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${installmentStatusTone(
                                     installment.status,
-                                  )}`}
+                                  )} ${canViewInvoice ? "cursor-pointer hover:opacity-85" : "cursor-default"}`}
                                 >
                                   {installment.status}
-                                </span>
+                                </button>
                               </div>
                               <p className="text-[11px] text-slate-500">
                                 Due {formatDate(installment.dueDate)}
@@ -807,18 +898,33 @@ export function PlansView({
                                 {formatCurrency(installment.paidAmount)} /{" "}
                                 {formatCurrency(installment.amount)}
                               </p>
-                              <Button
-                                size="sm"
-                                className="mt-1 w-full bg-slate-900 hover:bg-slate-800"
-                                disabled={remaining <= 0}
-                                asChild
-                              >
-                                <Link
-                                  href={`/dashboard/installments?installment=${installment.id}`}
+                              <div className="mt-1 grid grid-cols-2 gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-slate-300"
+                                  disabled={!canViewInvoice}
+                                  onClick={() => {
+                                    if (latestTransactionId) {
+                                      setViewingTransactionId(
+                                        latestTransactionId,
+                                      );
+                                    }
+                                  }}
+                                >
+                                  Invoice
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="bg-slate-900 hover:bg-slate-800"
+                                  disabled={remaining <= 0}
+                                  onClick={() =>
+                                    setSelectedInstallmentId(installment.id)
+                                  }
                                 >
                                   {remaining > 0 ? "Record" : "Paid"}
-                                </Link>
-                              </Button>
+                                </Button>
+                              </div>
                             </div>
                           );
                         })}
@@ -1038,6 +1144,49 @@ export function PlansView({
         onOpenChange={(open) => {
           if (!open) {
             setViewingPlanId(null);
+          }
+        }}
+      />
+
+      <Dialog
+        open={Boolean(selectedInstallmentId)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedInstallmentId(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Record Installment Transaction</DialogTitle>
+            <DialogDescription>
+              Add a payment directly against this installment.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedInstallmentId ? (
+            <TransactionForm
+              installments={installmentOptions}
+              initialInstallmentId={selectedInstallmentId}
+              lockInstallment
+              submitLabel="Record Transaction"
+              onSuccess={(createdTransaction) => {
+                setSelectedInstallmentId(null);
+                setViewingTransactionId(createdTransaction.id);
+                router.refresh();
+              }}
+              onCancel={() => setSelectedInstallmentId(null)}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <TransactionDetailSheet
+        open={Boolean(viewingTransactionId)}
+        transactionId={viewingTransactionId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingTransactionId(null);
           }
         }}
       />

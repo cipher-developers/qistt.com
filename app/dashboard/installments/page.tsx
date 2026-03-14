@@ -23,6 +23,15 @@ export default async function InstallmentsPage({
         : {}),
     },
     include: {
+      transactions: {
+        select: {
+          id: true,
+          transactionDate: true,
+        },
+        orderBy: {
+          transactionDate: "desc",
+        },
+      },
       plan: {
         select: {
           id: true,

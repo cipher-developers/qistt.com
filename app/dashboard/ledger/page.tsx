@@ -52,6 +52,15 @@ export default async function PlansWorkspacePage() {
           amount: true,
           paidAmount: true,
           status: true,
+          transactions: {
+            select: {
+              id: true,
+              transactionDate: true,
+            },
+            orderBy: {
+              transactionDate: "desc",
+            },
+          },
         },
         orderBy: {
           installmentNumber: "asc",
