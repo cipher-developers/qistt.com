@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, email, phone, cnic, address } = await request.json();
+    const { name, email, phone, cnic, address, referenceId } = await request.json();
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
         phone: phone || null,
         cnic: cnic || null,
         address: address || null,
+        referenceId: referenceId || null,
         tenantId: tenant.id,
       },
     });
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
 
     const customers = await prisma.customer.findMany({
       where: { tenantId: tenant.id },
+      include: { reference: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
     });
 

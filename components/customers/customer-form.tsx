@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function formatCnicInput(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 13);
@@ -24,8 +31,14 @@ function formatCnicInput(value: string) {
   return `${first}-${second}-${third}`;
 }
 
+type ReferenceOption = {
+  id: string;
+  name: string;
+};
+
 type CustomerFormProps = {
   tenantId?: string;
+  references?: ReferenceOption[];
   mode?: "create" | "edit";
   customer?: {
     id: number;
@@ -34,6 +47,7 @@ type CustomerFormProps = {
     phone: string | null;
     cnic: string | null;
     address: string | null;
+    referenceId?: string | null;
   };
   onSuccess?: () => void;
   onCancel?: () => void;
@@ -41,6 +55,7 @@ type CustomerFormProps = {
 
 export function CustomerForm({
   tenantId,
+  references = [],
   mode = "create",
   customer,
   onSuccess,
@@ -49,6 +64,9 @@ export function CustomerForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const [referenceId, setReferenceId] = useState(
+    customer?.referenceId || "none",
+  );
   const [formData, setFormData] = useState({
     name: customer?.name || "",
     email: customer?.email || "",
@@ -58,6 +76,7 @@ export function CustomerForm({
   });
 
   useEffect(() => {
+    setReferenceId(customer?.referenceId || "none");
     setFormData({
       name: customer?.name || "",
       email: customer?.email || "",
@@ -80,7 +99,11 @@ export function CustomerForm({
       const response = await fetch(endpoint, {
         method: mode === "edit" ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, tenantId }),
+        body: JSON.stringify({
+          ...formData,
+          referenceId: referenceId === "none" ? null : referenceId,
+          tenantId,
+        }),
       });
 
       if (!response.ok) {
@@ -94,6 +117,7 @@ export function CustomerForm({
         onSuccess?.();
 
         if (mode === "create") {
+          setReferenceId("none");
           setFormData({
             name: "",
             email: "",
@@ -174,6 +198,36 @@ export function CustomerForm({
             className="mt-1 h-11 rounded-xl border-slate-200"
           />
         </div>
+      </div>
+      <div>
+        <Label htmlFor="reference" className="font-medium text-slate-700">
+          Reference
+        </Label>
+        <Select value={referenceId} onValueChange={setReferenceId}>
+          <SelectTrigger
+            id="reference"
+            className="mt-1 h-11 rounded-xl border-slate-200"
+          >
+            <SelectValue placeholder="Others (no reference)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Others</SelectItem>
+            {references.map((ref) => (
+              <SelectItem key={ref.id} value={ref.id}>
+                {ref.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="mt-1.5 text-xs text-slate-500">
+          How or where was this customer referred?{" "}
+          <a
+            href="/dashboard/customers/references"
+            className="text-slate-700 underline underline-offset-2 hover:text-slate-900"
+          >
+            Manage references
+          </a>
+        </p>
       </div>
       <div>
         <Label htmlFor="address" className="text-slate-700 font-medium">

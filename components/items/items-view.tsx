@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Boxes,
+  Calendar,
   FolderKanban,
   Package,
   Plus,
@@ -59,6 +60,22 @@ function formatDate(date: string | Date) {
   });
 }
 
+function toDateInputValue(date: Date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+}
+
+function startOfCurrentMonth() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1);
+}
+
+function endOfCurrentMonth() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() + 1, 0);
+}
+
 type ItemsViewProps = {
   tenantId?: string;
   tenantName?: string;
@@ -73,32 +90,86 @@ export function ItemsView({
   categories,
 }: ItemsViewProps) {
   const [query, setQuery] = useState("");
+  const [datePreset, setDatePreset] = useState<
+    "this-month" | "last-30" | "all" | "custom"
+  >("this-month");
+  const [fromDate, setFromDate] = useState<string>(
+    toDateInputValue(startOfCurrentMonth()),
+  );
+  const [toDate, setToDate] = useState<string>(
+    toDateInputValue(endOfCurrentMonth()),
+  );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ItemRecord | null>(null);
   const [viewingItemId, setViewingItemId] = useState<number | null>(null);
+
+  function applyDatePreset(preset: "this-month" | "last-30" | "all") {
+    setDatePreset(preset);
+
+    if (preset === "all") {
+      setFromDate("");
+      setToDate("");
+      return;
+    }
+
+    if (preset === "last-30") {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - 29);
+      setFromDate(toDateInputValue(start));
+      setToDate(toDateInputValue(end));
+      return;
+    }
+
+    setFromDate(toDateInputValue(startOfCurrentMonth()));
+    setToDate(toDateInputValue(endOfCurrentMonth()));
+  }
+
+  const dateFilteredItems = useMemo(() => {
+    return items.filter((item) => {
+      const created = new Date(item.createdAt);
+      created.setHours(0, 0, 0, 0);
+
+      if (fromDate) {
+        const start = new Date(fromDate);
+        start.setHours(0, 0, 0, 0);
+        if (created < start) return false;
+      }
+
+      if (toDate) {
+        const end = new Date(toDate);
+        end.setHours(0, 0, 0, 0);
+        if (created > end) return false;
+      }
+
+      return true;
+    });
+  }, [items, fromDate, toDate]);
 
   const filteredItems = useMemo(() => {
     const value = query.trim().toLowerCase();
 
     if (!value) {
-      return items;
+      return dateFilteredItems;
     }
 
-    return items.filter((item) =>
+    return dateFilteredItems.filter((item) =>
       [item.name, item.model, item.description, item.sku, item.category?.name]
         .filter(Boolean)
         .some((field) => field!.toLowerCase().includes(value)),
     );
-  }, [items, query]);
+  }, [dateFilteredItems, query]);
 
-  const totalPlans = items.reduce(
+  const totalPlans = dateFilteredItems.reduce(
     (sum, item) => sum + item._count.installmentPlans,
     0,
   );
   const averagePrice =
-    items.length > 0
-      ? items.reduce((sum, item) => sum + (item.sellingPrice || 0), 0) /
-        items.length
+    dateFilteredItems.length > 0
+      ? dateFilteredItems.reduce(
+          (sum, item) => sum + (item.sellingPrice || 0),
+          0,
+        ) / dateFilteredItems.length
       : 0;
   const canCreateItem = categories.length > 0;
 
@@ -148,6 +219,77 @@ export function ItemsView({
         </div>
       </section>
 
+      <section>
+        <Card className="border border-slate-200/70 bg-white/90 p-4 sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Created Date Range
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={datePreset === "this-month" ? "default" : "outline"}
+                  className={
+                    datePreset === "this-month"
+                      ? "bg-slate-900 hover:bg-slate-800"
+                      : "border-slate-300"
+                  }
+                  onClick={() => applyDatePreset("this-month")}
+                >
+                  This Month
+                </Button>
+                <Button
+                  size="sm"
+                  variant={datePreset === "last-30" ? "default" : "outline"}
+                  className={
+                    datePreset === "last-30"
+                      ? "bg-slate-900 hover:bg-slate-800"
+                      : "border-slate-300"
+                  }
+                  onClick={() => applyDatePreset("last-30")}
+                >
+                  Last 30 Days
+                </Button>
+                <Button
+                  size="sm"
+                  variant={datePreset === "all" ? "default" : "outline"}
+                  className={
+                    datePreset === "all"
+                      ? "bg-slate-900 hover:bg-slate-800"
+                      : "border-slate-300"
+                  }
+                  onClick={() => applyDatePreset("all")}
+                >
+                  All Time
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <Input
+                type="date"
+                value={fromDate}
+                onChange={(event) => {
+                  setDatePreset("custom");
+                  setFromDate(event.target.value);
+                }}
+                className="h-10 rounded-xl border-slate-200 bg-white"
+              />
+              <Input
+                type="date"
+                value={toDate}
+                onChange={(event) => {
+                  setDatePreset("custom");
+                  setToDate(event.target.value);
+                }}
+                className="h-10 rounded-xl border-slate-200 bg-white"
+              />
+            </div>
+          </div>
+        </Card>
+      </section>
+
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="border border-slate-200/70 bg-white/90 p-5">
           <div className="flex items-center justify-between gap-4">
@@ -156,11 +298,11 @@ export function ItemsView({
                 Total Items
               </p>
               <p className="mt-2 text-2xl font-semibold text-slate-900">
-                {items.length}
+                {dateFilteredItems.length}
               </p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-sky-50 p-2.5 text-sky-600">
-              <Package size={20} />
+              <Calendar size={20} />
             </div>
           </div>
         </Card>

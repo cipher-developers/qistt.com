@@ -145,7 +145,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, email, phone, cnic, address } = await request.json();
+    const { name, email, phone, cnic, address, referenceId } = await request.json();
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -169,6 +169,7 @@ export async function PUT(
         phone: phone || null,
         cnic: cnic || null,
         address: address || null,
+        referenceId: referenceId || null,
       },
     });
 

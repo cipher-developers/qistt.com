@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
+  Bookmark,
   Calendar,
   Search,
   Plus,
@@ -26,6 +28,11 @@ import { CustomerDeleteButton } from "@/components/customers/delete-button";
 import { CustomerDetailSheet } from "@/components/customers/customer-detail-sheet";
 import { EntityViewButton } from "@/components/shared/entity-view-button";
 
+type ReferenceOption = {
+  id: string;
+  name: string;
+};
+
 type CustomerRecord = {
   id: number;
   name: string;
@@ -33,6 +40,8 @@ type CustomerRecord = {
   phone: string | null;
   cnic: string | null;
   address: string | null;
+  referenceId?: string | null;
+  reference?: { id: string; name: string } | null;
   createdAt: string | Date;
   _count: {
     installmentPlans: number;
@@ -67,12 +76,14 @@ type CustomersViewProps = {
   tenantId?: string;
   tenantName?: string;
   customers: CustomerRecord[];
+  references?: ReferenceOption[];
 };
 
 export function CustomersView({
   tenantId,
   tenantName,
   customers,
+  references = [],
 }: CustomersViewProps) {
   const [query, setQuery] = useState("");
   const [datePreset, setDatePreset] = useState<
@@ -201,6 +212,12 @@ export function CustomersView({
             >
               <Plus size={16} />
               Add Customer
+            </Button>
+            <Button variant="outline" className="h-11 rounded-xl" asChild>
+              <Link href="/dashboard/customers/references">
+                <Bookmark size={16} />
+                Manage References
+              </Link>
             </Button>
           </div>
         </div>
@@ -392,6 +409,10 @@ export function CustomersView({
                         <p className="mt-1 text-xs text-slate-500">
                           {customer.cnic || "No CNIC"}
                         </p>
+                        <p className="mt-0.5 text-xs text-slate-400">
+                          <Bookmark size={10} className="mr-1 inline" />
+                          {customer.reference?.name ?? "Others"}
+                        </p>
                       </div>
                       <EntityViewButton
                         label={`customer ${customer.name}`}
@@ -458,6 +479,10 @@ export function CustomersView({
                           <p className="mt-1 text-xs text-slate-500">
                             {customer.cnic || "No CNIC"}
                           </p>
+                          <p className="mt-0.5 text-xs text-slate-400">
+                            <Bookmark size={10} className="mr-1 inline" />
+                            {customer.reference?.name ?? "Others"}
+                          </p>
                           <p className="mt-1 text-xs text-slate-500">
                             {customer.address || "No address added"}
                           </p>
@@ -518,6 +543,7 @@ export function CustomersView({
           <div className="p-6">
             <CustomerForm
               tenantId={tenantId}
+              references={references}
               onSuccess={() => setIsCreateOpen(false)}
               onCancel={() => setIsCreateOpen(false)}
             />
@@ -542,6 +568,7 @@ export function CustomersView({
             {editingCustomer ? (
               <CustomerForm
                 tenantId={tenantId}
+                references={references}
                 customer={editingCustomer}
                 mode="edit"
                 onSuccess={() => setEditingCustomer(null)}

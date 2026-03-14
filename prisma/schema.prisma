@@ -39,25 +39,29 @@ model Tenant {
   customers       Customer[]
   items           Item[]
   categories      Category[]
+  references      Reference[]
   installmentPlans InstallmentPlan[]
   transactions    Transaction[]
 }
 
 model Customer {
-  id        Int        @id @default(autoincrement())
-  name      String
-  phone     String
-  cnic      String?
-  email     String?
-  address   String?
-  tenantId  String
-  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id          Int        @id @default(autoincrement())
+  name        String
+  phone       String
+  cnic        String?
+  email       String?
+  address     String?
+  referenceId String?
+  reference   Reference? @relation(fields: [referenceId], references: [id], onDelete: SetNull)
+  tenantId    String
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   installmentPlans InstallmentPlan[]
   transactions Transaction[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   @@index([tenantId])
+  @@index([referenceId])
   @@unique([tenantId, phone])
 }
 
@@ -69,6 +73,19 @@ model Category {
   items     Item[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@unique([tenantId, name])
+}
+
+model Reference {
+  id        String     @id @default(cuid())
+  name      String
+  tenantId  String
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customers Customer[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   @@index([tenantId])
   @@unique([tenantId, name])
