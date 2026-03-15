@@ -37,10 +37,20 @@ interface Customer {
   name: string;
 }
 
-interface Item {
+interface Purchase {
   id: number;
-  name: string;
-  sellingPrice: number | null;
+  quantity: number;
+  consumedQty: number;
+  unitCost: number;
+  purchasedAt: string | Date;
+  item: {
+    id: number;
+    name: string;
+  };
+  vendor: {
+    id: number;
+    name: string;
+  };
 }
 
 function toDateInputValue(date: Date) {
@@ -60,11 +70,11 @@ function getInstallmentDueDate(startDate: Date, installmentNumber: number) {
 export function OnboardingForm({
   tenantId,
   customers,
-  items,
+  purchases,
 }: {
   tenantId?: string;
   customers: Customer[];
-  items: Item[];
+  purchases: Purchase[];
 }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -73,13 +83,14 @@ export function OnboardingForm({
   const [isItemOpen, setIsItemOpen] = useState(false);
   const router = useRouter();
   const stepTitles = [
-    "Select customer and item",
+    "Select customer and purchase",
     "Set payment terms",
     "Review and create",
   ];
 
   const [formData, setFormData] = useState({
     customerId: "",
+    purchaseId: "",
     itemId: "",
     sellingPrice: "",
     advancePaid: "0",
@@ -87,13 +98,21 @@ export function OnboardingForm({
     createdAt: toDateInputValue(new Date()),
   });
 
-  const selectedItem = items.find((i) => String(i.id) === formData.itemId);
+  const selectedPurchase = purchases.find(
+    (p) => String(p.id) === formData.purchaseId,
+  );
+  const selectedItem = selectedPurchase?.item;
   const selectedCustomer = customers.find(
     (c) => String(c.id) === formData.customerId,
   );
+  const selectedPurchaseRemaining = selectedPurchase
+    ? Math.max(selectedPurchase.quantity - selectedPurchase.consumedQty, 0)
+    : 0;
   const sellingPrice = parseFloat(formData.sellingPrice || "0");
   const advancePaid = parseFloat(formData.advancePaid || "0");
   const months = parseInt(formData.months || "0", 10);
+  const purchaseUnitCost = selectedPurchase?.unitCost ?? 0;
+  const estimatedGrossProfit = sellingPrice - purchaseUnitCost;
   const remainingBalance = Math.max(sellingPrice - advancePaid, 0);
   const monthlyAmount = months > 0 ? remainingBalance / months : 0;
   const planCreatedDate = new Date(formData.createdAt || new Date());
@@ -120,11 +139,11 @@ export function OnboardingForm({
     });
   }, [months, planCreatedDate]);
 
-  const noDataAvailable = customers.length === 0 || items.length === 0;
+  const noDataAvailable = customers.length === 0 || purchases.length === 0;
 
   function canProceedFromCurrentStep() {
     if (step === 1) {
-      return Boolean(formData.customerId && formData.itemId);
+      return Boolean(formData.customerId && formData.purchaseId);
     }
 
     if (step === 2) {
@@ -140,8 +159,8 @@ export function OnboardingForm({
   }
 
   function getStepError() {
-    if (step === 1 && (!formData.customerId || !formData.itemId)) {
-      return "Please select both a customer and an item to continue.";
+    if (step === 1 && (!formData.customerId || !formData.purchaseId)) {
+      return "Please select both a customer and a purchase lot to continue.";
     }
 
     if (step === 2) {
@@ -181,6 +200,7 @@ export function OnboardingForm({
         body: JSON.stringify({
           ...formData,
           customerId: Number(formData.customerId),
+          purchaseId: Number(formData.purchaseId),
           itemId: Number(formData.itemId),
           sellingPrice: parseFloat(formData.sellingPrice),
           advancePaid: parseFloat(formData.advancePaid),
@@ -272,7 +292,7 @@ export function OnboardingForm({
           {step === 1 ? (
             <div className="space-y-4">
               <h3 className="text-base font-semibold text-slate-900">
-                Choose customer and item
+                Choose customer and inventory purchase
               </h3>
 
               <div>
@@ -343,8 +363,11 @@ export function OnboardingForm({
               </div>
 
               <div>
-                <Label htmlFor="item" className="text-slate-700 font-medium">
-                  Item *
+                <Label
+                  htmlFor="purchase"
+                  className="text-slate-700 font-medium"
+                >
+                  Purchase Lot *
                 </Label>
                 <Popover open={isItemOpen} onOpenChange={setIsItemOpen}>
                   <PopoverTrigger asChild>
@@ -356,9 +379,9 @@ export function OnboardingForm({
                       className="mt-1 h-11 w-full justify-between rounded-xl border-slate-200 bg-white font-normal"
                     >
                       <span className="truncate">
-                        {selectedItem
-                          ? `${selectedItem.name} - ${formatCurrency(selectedItem.sellingPrice || 0)}`
-                          : "Search and select item"}
+                        {selectedPurchase
+                          ? `${selectedPurchase.item.name} • ${selectedPurchase.vendor.name} • ${new Date(selectedPurchase.purchasedAt).toLocaleDateString()}`
+                          : "Search and select purchase lot"}
                       </span>
                       <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
                     </Button>
@@ -368,51 +391,77 @@ export function OnboardingForm({
                     align="start"
                   >
                     <Command>
-                      <CommandInput placeholder="Search items..." />
+                      <CommandInput placeholder="Search purchases, item, vendor..." />
                       <CommandList>
-                        <CommandEmpty>No item found.</CommandEmpty>
-                        {items.map((item) => (
-                          <CommandItem
-                            key={item.id}
-                            value={`${item.name} ${item.sellingPrice || 0}`}
-                            onSelect={() => {
-                              setFormData({
-                                ...formData,
-                                itemId: String(item.id),
-                                sellingPrice: item.sellingPrice
-                                  ? String(item.sellingPrice)
-                                  : "",
-                              });
-                              setIsItemOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={`mr-2 size-4 ${
-                                formData.itemId === String(item.id)
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              }`}
-                            />
-                            <span className="flex-1 truncate">{item.name}</span>
-                            <span className="text-xs text-slate-500">
-                              {formatCurrency(item.sellingPrice || 0)}
-                            </span>
-                          </CommandItem>
-                        ))}
+                        <CommandEmpty>No purchase lot found.</CommandEmpty>
+                        {purchases.map((purchase) => {
+                          const remaining = Math.max(
+                            purchase.quantity - purchase.consumedQty,
+                            0,
+                          );
+                          return (
+                            <CommandItem
+                              key={purchase.id}
+                              value={`${purchase.item.name} ${purchase.vendor.name} ${purchase.unitCost} ${new Date(purchase.purchasedAt).toLocaleDateString()}`}
+                              onSelect={() => {
+                                setFormData({
+                                  ...formData,
+                                  purchaseId: String(purchase.id),
+                                  itemId: String(purchase.item.id),
+                                });
+                                setIsItemOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 size-4 ${
+                                  formData.purchaseId === String(purchase.id)
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                }`}
+                              />
+                              <span className="flex-1 truncate">
+                                {purchase.item.name} • {purchase.vendor.name}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {remaining} left @{" "}
+                                {formatCurrency(purchase.unitCost)}
+                              </span>
+                            </CommandItem>
+                          );
+                        })}
                       </CommandList>
                     </Command>
                   </PopoverContent>
                 </Popover>
                 <p className="mt-1 text-xs text-slate-500">
-                  Need an item first?{" "}
+                  Need stock first?{" "}
                   <Link
-                    href="/dashboard/items"
+                    href="/dashboard/purchases"
                     className="text-slate-900 underline"
                   >
-                    Manage items
+                    Manage purchases
                   </Link>
                 </p>
               </div>
+
+              {selectedPurchase ? (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-600">
+                  <p>
+                    <span className="font-semibold text-slate-800">
+                      Selected lot:
+                    </span>{" "}
+                    #{selectedPurchase.id} from {selectedPurchase.vendor.name}
+                  </p>
+                  <p className="mt-1">
+                    Purchased on{" "}
+                    {new Date(
+                      selectedPurchase.purchasedAt,
+                    ).toLocaleDateString()}{" "}
+                    • Unit Cost {formatCurrency(selectedPurchase.unitCost)} •
+                    Remaining {selectedPurchaseRemaining}
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -548,10 +597,36 @@ export function OnboardingForm({
                       {selectedItem?.name || "-"}
                     </span>
                   </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-600">Purchase Lot</span>
+                    <span className="font-medium text-slate-900">
+                      {selectedPurchase ? `#${selectedPurchase.id}` : "-"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-600">Vendor</span>
+                    <span className="font-medium text-slate-900">
+                      {selectedPurchase?.vendor.name || "-"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-600">Unit Purchase Cost</span>
+                    <span className="font-medium text-slate-900">
+                      {formatCurrency(purchaseUnitCost)}
+                    </span>
+                  </div>
                   <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-2">
                     <span className="text-slate-600">Total Price</span>
                     <span className="font-semibold text-slate-900">
                       {formatCurrency(sellingPrice)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-600">Estimated Gross P/L</span>
+                    <span
+                      className={`font-semibold ${estimatedGrossProfit >= 0 ? "text-emerald-700" : "text-rose-700"}`}
+                    >
+                      {formatCurrency(estimatedGrossProfit)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-3">
@@ -680,6 +755,9 @@ export function OnboardingForm({
                 <Package size={15} className="text-slate-500" />
                 <span className="truncate">
                   {selectedItem?.name || "No item selected"}
+                  {selectedPurchase
+                    ? ` (Lot #${selectedPurchase.id}, ${selectedPurchaseRemaining} left)`
+                    : ""}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-slate-700">

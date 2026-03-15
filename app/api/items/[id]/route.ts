@@ -43,6 +43,23 @@ export async function GET(
                 _count: {
                     select: {
                         installmentPlans: true,
+                        purchases: true,
+                    },
+                },
+                purchases: {
+                    orderBy: { purchasedAt: "desc" },
+                    select: {
+                        id: true,
+                        quantity: true,
+                        consumedQty: true,
+                        unitCost: true,
+                        purchasedAt: true,
+                        vendor: {
+                            select: {
+                                id: true,
+                                name: true,
+                            },
+                        },
                     },
                 },
                 installmentPlans: {
@@ -102,9 +119,9 @@ export async function PUT(
 
         const { name, model, description, sellingPrice, costPrice, sku, categoryId } = await request.json();
 
-        if (!name || !categoryId || sellingPrice === undefined || costPrice === undefined) {
+        if (!name || !categoryId) {
             return NextResponse.json(
-                { error: "Name, category, selling price, and cost price are required" },
+                { error: "Name and category are required" },
                 { status: 400 }
             );
         }
@@ -118,8 +135,14 @@ export async function PUT(
                 name,
                 model: model || null,
                 description: description || null,
-                sellingPrice: Number(sellingPrice),
-                costPrice: Number(costPrice),
+                sellingPrice:
+                    sellingPrice === undefined || sellingPrice === ""
+                        ? null
+                        : Number(sellingPrice),
+                costPrice:
+                    costPrice === undefined || costPrice === ""
+                        ? null
+                        : Number(costPrice),
                 sku: sku || null,
                 categoryId,
             },

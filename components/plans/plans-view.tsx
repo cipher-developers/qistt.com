@@ -73,6 +73,15 @@ type PlanRecord = {
     id: number;
     name: string;
   };
+  purchase?: {
+    id: number;
+    unitCost: number;
+    purchasedAt: string | Date;
+    vendor: {
+      id: number;
+      name: string;
+    };
+  } | null;
   transactions: {
     id: number;
     amount: number;
@@ -376,10 +385,15 @@ export function PlansView({
             customer: plan.customer.name,
             phone: plan.customer.phone,
             item: plan.item.name,
+            purchaseId: plan.purchase?.id ?? "",
+            purchaseVendor: plan.purchase?.vendor.name ?? "",
+            purchaseUnitCost: plan.purchase?.unitCost ?? 0,
             sellingPrice: plan.sellingPrice,
             advancePaid: plan.advancePaid,
             generatedRevenue: metrics.generatedRevenue,
             pendingRevenue: metrics.pendingRevenue,
+            grossProfitEstimate:
+              plan.sellingPrice - (plan.purchase?.unitCost ?? 0),
             months: plan.months,
             monthlyAmount: plan.monthlyAmount,
             progress: `${metrics.progress.toFixed(0)}%`,
@@ -463,10 +477,14 @@ export function PlansView({
       "Customer",
       "Phone",
       "Item",
+      "Purchase #",
+      "Vendor",
+      "Unit Cost",
       "Selling Price",
       "Advance Paid",
       "Collected",
       "Pending",
+      "Gross Profit Est.",
       "Months",
       "Monthly Amount",
       "Progress",
@@ -483,10 +501,14 @@ export function PlansView({
           row.customer,
           row.phone,
           row.item,
+          row.purchaseId,
+          row.purchaseVendor,
+          row.purchaseUnitCost,
           row.sellingPrice,
           row.advancePaid,
           row.generatedRevenue,
           row.pendingRevenue,
+          row.grossProfitEstimate,
           row.months,
           row.monthlyAmount,
           row.progress,
@@ -515,10 +537,14 @@ export function PlansView({
       "Customer",
       "Phone",
       "Item",
+      "Purchase #",
+      "Vendor",
+      "Unit Cost",
       "Selling Price",
       "Advance Paid",
       "Collected",
       "Pending",
+      "Gross Profit Est.",
       "Months",
       "Monthly Amount",
       "Progress",
@@ -537,10 +563,14 @@ export function PlansView({
         <td>${row.customer}</td>
         <td>${row.phone}</td>
         <td>${row.item}</td>
+        <td>${row.purchaseId}</td>
+        <td>${row.purchaseVendor}</td>
+        <td>${row.purchaseUnitCost}</td>
         <td>${row.sellingPrice}</td>
         <td>${row.advancePaid}</td>
         <td>${row.generatedRevenue}</td>
         <td>${row.pendingRevenue}</td>
+        <td>${row.grossProfitEstimate}</td>
         <td>${row.months}</td>
         <td>${row.monthlyAmount}</td>
         <td>${row.progress}</td>

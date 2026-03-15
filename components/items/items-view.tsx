@@ -52,6 +52,10 @@ type ItemRecord = {
   _count: {
     installmentPlans: number;
   };
+  purchases: {
+    quantity: number;
+    consumedQty: number;
+  }[];
 };
 
 function formatDate(date: string | Date) {
@@ -196,8 +200,15 @@ export function ItemsView({
           model: item.model || "",
           category: item.category?.name || "Uncategorized",
           sku: item.sku || "",
-          sellingPrice: item.sellingPrice ?? 0,
-          costPrice: item.costPrice ?? 0,
+          quantityIn: item.purchases.reduce((sum, p) => sum + p.quantity, 0),
+          quantityOut: item.purchases.reduce(
+            (sum, p) => sum + p.consumedQty,
+            0,
+          ),
+          quantityAvailable: item.purchases.reduce(
+            (sum, p) => sum + (p.quantity - p.consumedQty),
+            0,
+          ),
           plans: item._count.installmentPlans,
           createdDate: new Date(item.createdAt).toISOString().slice(0, 10),
         })),
@@ -208,13 +219,15 @@ export function ItemsView({
     (sum, item) => sum + item._count.installmentPlans,
     0,
   );
-  const averagePrice =
-    dateFilteredItems.length > 0
-      ? dateFilteredItems.reduce(
-          (sum, item) => sum + (item.sellingPrice || 0),
-          0,
-        ) / dateFilteredItems.length
-      : 0;
+  const totalStock = dateFilteredItems.reduce(
+    (sum, item) =>
+      sum +
+      item.purchases.reduce(
+        (inner, p) => inner + (p.quantity - p.consumedQty),
+        0,
+      ),
+    0,
+  );
   const canCreateItem = categories.length > 0;
 
   function exportToCsv() {
@@ -226,8 +239,9 @@ export function ItemsView({
       "Model",
       "Category",
       "SKU",
-      "Selling Price",
-      "Cost Price",
+      "Qty In",
+      "Qty Out",
+      "Qty Available",
       "Plans",
       "Created Date",
     ];
@@ -241,8 +255,9 @@ export function ItemsView({
           row.model,
           row.category,
           row.sku,
-          row.sellingPrice,
-          row.costPrice,
+          row.quantityIn,
+          row.quantityOut,
+          row.quantityAvailable,
           row.plans,
           row.createdDate,
         ]
@@ -268,8 +283,9 @@ export function ItemsView({
       "Model",
       "Category",
       "SKU",
-      "Selling Price",
-      "Cost Price",
+      "Qty In",
+      "Qty Out",
+      "Qty Available",
       "Plans",
       "Created Date",
     ]
@@ -285,8 +301,9 @@ export function ItemsView({
         <td>${row.model}</td>
         <td>${row.category}</td>
         <td>${row.sku}</td>
-        <td>${row.sellingPrice}</td>
-        <td>${row.costPrice}</td>
+        <td>${row.quantityIn}</td>
+        <td>${row.quantityOut}</td>
+        <td>${row.quantityAvailable}</td>
         <td>${row.plans}</td>
         <td>${row.createdDate}</td>
       </tr>`,
@@ -483,10 +500,10 @@ export function ItemsView({
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Average Price
+                Total In Stock
               </p>
               <p className="mt-2 text-2xl font-semibold text-slate-900">
-                {formatCurrency(averagePrice)}
+                {totalStock}
               </p>
               <p className="mt-1 text-xs text-slate-500">
                 {totalPlans} total installment plans
@@ -555,78 +572,82 @@ export function ItemsView({
                 <div>ID</div>
                 <div>Item</div>
                 <div>Category</div>
-                <div>Cost</div>
-                <div>Price</div>
+                <div>Stock</div>
                 <div>Plans</div>
                 <div>Created</div>
                 <div>Actions</div>
               </div>
               <div className="divide-y divide-slate-200">
-                {filteredItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="grid grid-cols-[90px_minmax(0,1.1fr)_180px_120px_120px_110px_130px_170px] items-center gap-4 px-6 py-4 transition-colors hover:bg-slate-50/80"
-                  >
-                    <div className="text-sm font-semibold text-slate-700">
-                      #{item.id}
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-900">
-                          {item.name}
-                        </p>
-                        <p className="mt-1 truncate text-xs font-medium text-slate-600">
-                          {item.model || "No model"}
-                        </p>
-                        <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                          <Tag size={12} />
-                          <span className="truncate">
-                            {item.sku || "No SKU"}
+                {filteredItems.map((item) =>
+                  (() => {
+                    const availableQty = item.purchases.reduce(
+                      (sum, p) => sum + (p.quantity - p.consumedQty),
+                      0,
+                    );
+                    return (
+                      <div
+                        key={item.id}
+                        className="grid grid-cols-[90px_minmax(0,1.2fr)_180px_120px_110px_130px_170px] items-center gap-4 px-6 py-4 transition-colors hover:bg-slate-50/80"
+                      >
+                        <div className="text-sm font-semibold text-slate-700">
+                          #{item.id}
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-slate-900">
+                              {item.name}
+                            </p>
+                            <p className="mt-1 truncate text-xs font-medium text-slate-600">
+                              {item.model || "No model"}
+                            </p>
+                            <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                              <Tag size={12} />
+                              <span className="truncate">
+                                {item.sku || "No SKU"}
+                              </span>
+                            </div>
+                            <p className="mt-1 truncate text-xs text-slate-500">
+                              {item.description || "No description added"}
+                            </p>
+                          </div>
+                          <EntityViewButton
+                            label={`item ${item.name}`}
+                            className="mt-0.5 shrink-0"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setViewingItemId(item.id);
+                            }}
+                          />
+                        </div>
+                        <div className="truncate text-sm text-slate-600">
+                          {item.category?.name || "Uncategorized"}
+                        </div>
+                        <div className="text-sm font-medium text-slate-900">
+                          {availableQty}
+                        </div>
+                        <div>
+                          <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                            {item._count.installmentPlans} plans
                           </span>
                         </div>
-                        <p className="mt-1 truncate text-xs text-slate-500">
-                          {item.description || "No description added"}
-                        </p>
+                        <div className="text-sm text-slate-600">
+                          {formatDate(item.createdAt)}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-lg"
+                            onClick={() => setEditingItem(item)}
+                          >
+                            Edit
+                          </Button>
+                          <ItemDeleteButton itemId={item.id} compact />
+                        </div>
                       </div>
-                      <EntityViewButton
-                        label={`item ${item.name}`}
-                        className="mt-0.5 shrink-0"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setViewingItemId(item.id);
-                        }}
-                      />
-                    </div>
-                    <div className="truncate text-sm text-slate-600">
-                      {item.category?.name || "Uncategorized"}
-                    </div>
-                    <div className="text-sm text-slate-600">
-                      {formatCurrency(item.costPrice)}
-                    </div>
-                    <div className="text-sm font-medium text-slate-900">
-                      {formatCurrency(item.sellingPrice)}
-                    </div>
-                    <div>
-                      <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-                        {item._count.installmentPlans} plans
-                      </span>
-                    </div>
-                    <div className="text-sm text-slate-600">
-                      {formatDate(item.createdAt)}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-lg"
-                        onClick={() => setEditingItem(item)}
-                      >
-                        Edit
-                      </Button>
-                      <ItemDeleteButton itemId={item.id} compact />
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })(),
+                )}
               </div>
             </div>
 
@@ -668,8 +689,13 @@ export function ItemsView({
 
                   <div className="mt-4 space-y-2 text-sm text-slate-600">
                     <p>SKU: {item.sku || "No SKU"}</p>
-                    <p>Cost: {formatCurrency(item.costPrice)}</p>
-                    <p>Price: {formatCurrency(item.sellingPrice)}</p>
+                    <p>
+                      Available Stock:{" "}
+                      {item.purchases.reduce(
+                        (sum, p) => sum + (p.quantity - p.consumedQty),
+                        0,
+                      )}
+                    </p>
                   </div>
 
                   <p className="mt-3 text-xs text-slate-500">
@@ -724,7 +750,7 @@ export function ItemsView({
               Edit Item
             </DialogTitle>
             <DialogDescription>
-              Update pricing, SKU, category, and product details in one place.
+              Update SKU, category, and product details in one place.
             </DialogDescription>
           </DialogHeader>
           <div className="p-6">

@@ -7,6 +7,8 @@ import {
   LayoutDashboard,
   Users,
   Package,
+  Handshake,
+  ShoppingCart,
   FileText,
   ListChecks,
   Settings,
@@ -20,6 +22,8 @@ import { cn } from "@/lib/utils";
 const MENU_ITEMS = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Package, label: "Items", href: "/dashboard/items" },
+  { icon: Handshake, label: "Vendors", href: "/dashboard/vendors" },
+  { icon: ShoppingCart, label: "Purchases", href: "/dashboard/purchases" },
   { icon: Users, label: "Customers", href: "/dashboard/customers" },
   { icon: BarChart3, label: "Plans", href: "/dashboard/ledger" },
   { icon: ListChecks, label: "Installments", href: "/dashboard/installments" },

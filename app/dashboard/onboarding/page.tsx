@@ -4,7 +4,7 @@ import { OnboardingForm } from "@/components/onboarding/onboarding-form";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Users, Package } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Users } from "lucide-react";
 
 export const metadata = {
   title: "Create Installment Plan - Kistly",
@@ -13,16 +13,39 @@ export const metadata = {
 export default async function OnboardingPage() {
   const tenant = await getCurrentTenant();
 
-  const [customers, items] = await Promise.all([
+  const [customers, purchases] = await Promise.all([
     prisma.customer.findMany({
       where: { tenantId: tenant?.id },
       select: { id: true, name: true },
     }),
-    prisma.item.findMany({
+    prisma.purchase.findMany({
       where: { tenantId: tenant?.id },
-      select: { id: true, name: true, sellingPrice: true },
+      select: {
+        id: true,
+        quantity: true,
+        consumedQty: true,
+        unitCost: true,
+        purchasedAt: true,
+        item: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        vendor: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { purchasedAt: "desc" },
     }),
   ]);
+
+  const availablePurchases = purchases.filter(
+    (row) => row.quantity - row.consumedQty > 0,
+  );
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 md:space-y-7">
@@ -49,15 +72,15 @@ export default async function OnboardingPage() {
         </div>
       </section>
 
-      {customers.length === 0 || items.length === 0 ? (
+      {customers.length === 0 || availablePurchases.length === 0 ? (
         <Card className="border border-dashed border-slate-300 bg-white/80 p-8">
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-slate-900">
               Setup required before onboarding
             </h2>
             <p className="text-sm text-slate-600">
-              You need at least one customer and one item before creating
-              installment plans.
+              You need at least one customer and one available inventory
+              purchase before creating installment plans.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button className="bg-slate-900 hover:bg-slate-800" asChild>
@@ -67,9 +90,9 @@ export default async function OnboardingPage() {
                 </Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link href="/dashboard/items">
-                  <Package size={16} />
-                  Manage Items
+                <Link href="/dashboard/purchases">
+                  <ShoppingCart size={16} />
+                  Manage Purchases
                 </Link>
               </Button>
             </div>
@@ -81,7 +104,7 @@ export default async function OnboardingPage() {
         <OnboardingForm
           tenantId={tenant?.id}
           customers={customers}
-          items={items}
+          purchases={availablePurchases}
         />
       </div>
     </div>

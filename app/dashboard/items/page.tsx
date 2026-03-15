@@ -14,6 +14,12 @@ export default async function ItemsPage() {
       where: { tenantId: tenant?.id },
       include: {
         category: true,
+        purchases: {
+          select: {
+            quantity: true,
+            consumedQty: true,
+          },
+        },
         _count: { select: { installmentPlans: true } },
       },
       orderBy: { createdAt: "desc" },

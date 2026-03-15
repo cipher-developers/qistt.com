@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
     const {
       customerId,
       itemId,
+      purchaseId,
       sellingPrice,
       advancePaid,
       months,
@@ -20,6 +21,7 @@ export async function POST(request: NextRequest) {
 
     const customerIdValue = Number(customerId);
     const itemIdValue = Number(itemId);
+    const purchaseIdValue = Number(purchaseId);
     const sellingPriceValue = Number(sellingPrice);
     const advancePaidValue = Number(advancePaid ?? 0);
     const monthsValue = Number(months);
@@ -30,6 +32,8 @@ export async function POST(request: NextRequest) {
       customerIdValue <= 0 ||
       !Number.isInteger(itemIdValue) ||
       itemIdValue <= 0 ||
+      !Number.isInteger(purchaseIdValue) ||
+      purchaseIdValue <= 0 ||
       !Number.isFinite(sellingPriceValue) ||
       sellingPriceValue <= 0 ||
       !Number.isInteger(monthsValue) ||
@@ -55,10 +59,36 @@ export async function POST(request: NextRequest) {
       (sellingPriceValue - advancePaidValue) / monthsValue;
 
     const plan = await prisma.$transaction(async (tx) => {
+      const purchase = await tx.purchase.findFirst({
+        where: {
+          id: purchaseIdValue,
+          tenantId: tenant.id,
+        },
+        select: {
+          id: true,
+          itemId: true,
+          quantity: true,
+          consumedQty: true,
+        },
+      });
+
+      if (!purchase) {
+        throw new Error("PURCHASE_NOT_FOUND");
+      }
+
+      if (purchase.itemId !== itemIdValue) {
+        throw new Error("PURCHASE_ITEM_MISMATCH");
+      }
+
+      if (purchase.consumedQty >= purchase.quantity) {
+        throw new Error("PURCHASE_OUT_OF_STOCK");
+      }
+
       const createdPlan = await tx.installmentPlan.create({
         data: {
           customerId: customerIdValue,
           itemId: itemIdValue,
+          purchaseId: purchaseIdValue,
           sellingPrice: sellingPriceValue,
           advancePaid: advancePaidValue,
           months: monthsValue,
@@ -102,6 +132,15 @@ export async function POST(request: NextRequest) {
         data: installments,
       });
 
+      await tx.purchase.update({
+        where: { id: purchaseIdValue },
+        data: {
+          consumedQty: {
+            increment: 1,
+          },
+        },
+      });
+
       return createdPlan;
     });
 
@@ -110,6 +149,27 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "PURCHASE_NOT_FOUND") {
+        return NextResponse.json(
+          { error: "Selected purchase record was not found" },
+          { status: 400 }
+        );
+      }
+      if (error.message === "PURCHASE_ITEM_MISMATCH") {
+        return NextResponse.json(
+          { error: "Selected purchase does not match the selected item" },
+          { status: 400 }
+        );
+      }
+      if (error.message === "PURCHASE_OUT_OF_STOCK") {
+        return NextResponse.json(
+          { error: "Selected purchase is out of stock" },
+          { status: 400 }
+        );
+      }
+    }
+
     console.error("Create installment plan error:", error);
     return NextResponse.json(
       { error: "Failed to create installment plan" },
@@ -130,6 +190,11 @@ export async function GET(request: NextRequest) {
       include: {
         customer: true,
         item: true,
+        purchase: {
+          include: {
+            vendor: true,
+          },
+        },
         installments: true,
       },
       orderBy: { createdAt: "desc" },

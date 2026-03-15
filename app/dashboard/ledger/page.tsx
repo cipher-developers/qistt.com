@@ -37,6 +37,19 @@ export default async function PlansWorkspacePage() {
           name: true,
         },
       },
+      purchase: {
+        select: {
+          id: true,
+          unitCost: true,
+          vendor: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          purchasedAt: true,
+        },
+      },
       transactions: {
         select: {
           id: true,

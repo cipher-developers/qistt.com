@@ -28,8 +28,6 @@ type ItemFormProps = {
     name: string;
     model: string | null;
     description: string | null;
-    sellingPrice: number | null;
-    costPrice: number | null;
     sku: string | null;
     categoryId: string;
   };
@@ -52,8 +50,6 @@ export function ItemForm({
     name: item?.name || "",
     model: item?.model || "",
     description: item?.description || "",
-    sellingPrice: item?.sellingPrice?.toString() || "",
-    costPrice: item?.costPrice?.toString() || "",
     sku: item?.sku || "",
     categoryId: item?.categoryId || categories[0]?.id || "",
   });
@@ -63,8 +59,6 @@ export function ItemForm({
       name: item?.name || "",
       model: item?.model || "",
       description: item?.description || "",
-      sellingPrice: item?.sellingPrice?.toString() || "",
-      costPrice: item?.costPrice?.toString() || "",
       sku: item?.sku || "",
       categoryId: item?.categoryId || categories[0]?.id || "",
     });
@@ -89,8 +83,6 @@ export function ItemForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          sellingPrice: Number(formData.sellingPrice),
-          costPrice: Number(formData.costPrice),
           tenantId,
         }),
       });
@@ -110,8 +102,6 @@ export function ItemForm({
             name: "",
             model: "",
             description: "",
-            sellingPrice: "",
-            costPrice: "",
             sku: "",
             categoryId: categories[0]?.id || "",
           });
@@ -190,43 +180,6 @@ export function ItemForm({
           rows={4}
           className="mt-1 rounded-xl border-slate-200"
         />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <Label htmlFor="costPrice" className="text-slate-700 font-medium">
-            Cost Price *
-          </Label>
-          <Input
-            id="costPrice"
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            value={formData.costPrice}
-            onChange={(e) =>
-              setFormData({ ...formData, costPrice: e.target.value })
-            }
-            required
-            className="mt-1 h-11 rounded-xl border-slate-200"
-          />
-        </div>
-        <div>
-          <Label htmlFor="sellingPrice" className="text-slate-700 font-medium">
-            Selling Price *
-          </Label>
-          <Input
-            id="sellingPrice"
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            value={formData.sellingPrice}
-            onChange={(e) =>
-              setFormData({ ...formData, sellingPrice: e.target.value })
-            }
-            required
-            className="mt-1 h-11 rounded-xl border-slate-200"
-          />
-        </div>
       </div>
 
       <div>

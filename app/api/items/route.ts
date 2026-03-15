@@ -9,11 +9,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, model, description, sellingPrice, costPrice, sku, categoryId } = await request.json();
+    const { name, model, description, sellingPrice, costPrice, sku, categoryId } =
+      await request.json();
 
-    if (!name || !categoryId || sellingPrice === undefined || costPrice === undefined) {
+    if (!name || !categoryId) {
       return NextResponse.json(
-        { error: "Name, category, selling price, and cost price are required" },
+        { error: "Name and category are required" },
         { status: 400 }
       );
     }
@@ -23,8 +24,12 @@ export async function POST(request: NextRequest) {
         name,
         model: model || null,
         description: description || null,
-        sellingPrice: Number(sellingPrice),
-        costPrice: Number(costPrice),
+        sellingPrice:
+          sellingPrice === undefined || sellingPrice === ""
+            ? null
+            : Number(sellingPrice),
+        costPrice:
+          costPrice === undefined || costPrice === "" ? null : Number(costPrice),
         sku: sku || null,
         categoryId,
         tenantId: tenant.id,
