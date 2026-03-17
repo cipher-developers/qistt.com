@@ -100,37 +100,39 @@ export async function POST(request: NextRequest) {
       });
 
       const installments = [];
-      let remainingAdvance = advancePaidValue;
 
       for (let i = 0; i < monthsValue; i++) {
         const dueDate = new Date(createdAtValue);
         dueDate.setMonth(dueDate.getMonth() + i + 1);
         dueDate.setDate(1);
 
-        const installmentAmount = parseFloat(monthlyAmount.toFixed(2));
-        const paidAmount = Math.min(remainingAdvance, installmentAmount);
-        remainingAdvance = Math.max(remainingAdvance - paidAmount, 0);
-
-        const status =
-          paidAmount >= installmentAmount
-            ? "paid"
-            : paidAmount > 0
-              ? "partial"
-              : "pending";
-
         installments.push({
           planId: createdPlan.id,
           installmentNumber: i + 1,
-          amount: installmentAmount,
+          amount: parseFloat(monthlyAmount.toFixed(2)),
           dueDate,
-          paidAmount,
-          status,
+          paidAmount: 0,
+          status: "pending",
         });
       }
 
       await tx.installment.createMany({
         data: installments,
       });
+
+      if (advancePaidValue > 0) {
+        await tx.transaction.create({
+          data: {
+            planId: createdPlan.id,
+            installmentId: null,
+            customerId: customerIdValue,
+            tenantId: tenant.id,
+            amount: advancePaidValue,
+            description: "Advance Payment",
+            transactionDate: createdAtValue,
+          },
+        });
+      }
 
       await tx.purchase.update({
         where: { id: purchaseIdValue },

@@ -104,8 +104,10 @@ type GroupedPlan = {
 };
 
 function getPlanMetrics(plan: PlanRecord) {
-  const generatedRevenue =
-    plan.advancePaid + plan.transactions.reduce((sum, t) => sum + t.amount, 0);
+  const generatedRevenue = plan.transactions.reduce(
+    (sum, t) => sum + t.amount,
+    0,
+  );
   const pendingRevenue = Math.max(plan.sellingPrice - generatedRevenue, 0);
   const progress =
     plan.sellingPrice > 0 ? (generatedRevenue / plan.sellingPrice) * 100 : 0;

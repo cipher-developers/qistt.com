@@ -148,9 +148,7 @@ export function PlanDetailSheet({
 
   const metrics = useMemo(() => {
     if (!detail) return null;
-    const collected =
-      detail.advancePaid +
-      detail.transactions.reduce((sum, t) => sum + t.amount, 0);
+    const collected = detail.transactions.reduce((sum, t) => sum + t.amount, 0);
     const remaining = Math.max(detail.sellingPrice - collected, 0);
     const progress = Math.min((collected / detail.sellingPrice) * 100, 100);
     const paidInstallments = detail.installments.filter(

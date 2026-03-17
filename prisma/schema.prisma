@@ -201,8 +201,8 @@ model Transaction {
   id              Int      @id @default(autoincrement())
   planId          Int
   plan            InstallmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
-  installmentId   String
-  installment     Installment @relation(fields: [installmentId], references: [id], onDelete: Cascade)
+  installmentId   String?
+  installment     Installment? @relation(fields: [installmentId], references: [id], onDelete: SetNull)
   customerId      Int
   customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   tenantId        String
