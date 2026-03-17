@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Download,
   FileDown,
   FileSpreadsheet,
   Layers3,
@@ -208,6 +209,9 @@ export function PlansView({
   const [viewingTransactionId, setViewingTransactionId] = useState<
     number | null
   >(null);
+  const [downloadingPlanId, setDownloadingPlanId] = useState<number | null>(
+    null,
+  );
   const router = useRouter();
 
   const installmentOptions = useMemo(
@@ -595,6 +599,29 @@ export function PlansView({
     );
   }
 
+  async function downloadPlanCard(plan: PlanRecord) {
+    setDownloadingPlanId(plan.id);
+
+    try {
+      const response = await fetch(`/api/installment-plans/${plan.id}/card`);
+      if (!response.ok) {
+        throw new Error("Failed to download plan card");
+      }
+
+      const blob = await response.blob();
+      const fallbackName = `${plan.customer.name || `plan-${plan.id}`}-plan-card.xlsx`;
+      const contentDisposition = response.headers.get("content-disposition");
+      const fileNameMatch = contentDisposition?.match(/filename="?([^\"]+)"?/i);
+      const fileName = fileNameMatch?.[1] || fallbackName;
+
+      downloadBlob(blob, fileName);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setDownloadingPlanId(null);
+    }
+  }
+
   return (
     <div className="space-y-6 md:space-y-7">
       <section className="rounded-2xl border border-slate-200/70 bg-white/80 p-5 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.6)] backdrop-blur sm:p-6 lg:p-7">
@@ -907,7 +934,7 @@ export function PlansView({
                       Progress
                     </th>
                     <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Installments
+                      Actions
                     </th>
                   </tr>
                 </thead>
@@ -1003,19 +1030,33 @@ export function PlansView({
                             </div>
                           </td>
                           <td className="px-5 py-3.5 text-right">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-slate-300"
-                              onClick={() => togglePlan(plan.id)}
-                            >
-                              {expanded ? (
-                                <ChevronUp size={14} />
-                              ) : (
-                                <ChevronDown size={14} />
-                              )}
-                              {expanded ? "Hide" : "Show"}
-                            </Button>
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-slate-300"
+                                onClick={() => downloadPlanCard(plan)}
+                                disabled={downloadingPlanId === plan.id}
+                              >
+                                <Download size={14} />
+                                {downloadingPlanId === plan.id
+                                  ? "Generating..."
+                                  : "Card"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-slate-300"
+                                onClick={() => togglePlan(plan.id)}
+                              >
+                                {expanded ? (
+                                  <ChevronUp size={14} />
+                                ) : (
+                                  <ChevronDown size={14} />
+                                )}
+                                {expanded ? "Hide" : "Show"}
+                              </Button>
+                            </div>
                           </td>
                         </tr>
 
@@ -1177,6 +1218,18 @@ export function PlansView({
                         {expanded ? "Hide" : "Show"}
                       </Button>
                     </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-slate-300"
+                      onClick={() => downloadPlanCard(plan)}
+                      disabled={downloadingPlanId === plan.id}
+                    >
+                      <Download size={14} />
+                      {downloadingPlanId === plan.id
+                        ? "Generating..."
+                        : "Download Card"}
+                    </Button>
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div>
                         <p className="text-slate-500">Total</p>
@@ -1450,17 +1503,31 @@ export function PlansView({
                                   </div>
                                 </td>
                                 <td className="px-5 py-3.5 text-right">
-                                  <Button
-                                    size="sm"
-                                    className="bg-slate-900 hover:bg-slate-800"
-                                    asChild
-                                  >
-                                    <Link
-                                      href={`/dashboard/installments?plan=${plan.id}`}
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-slate-300"
+                                      onClick={() => downloadPlanCard(plan)}
+                                      disabled={downloadingPlanId === plan.id}
                                     >
-                                      View Installments
-                                    </Link>
-                                  </Button>
+                                      <Download size={14} />
+                                      {downloadingPlanId === plan.id
+                                        ? "Generating..."
+                                        : "Card"}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="bg-slate-900 hover:bg-slate-800"
+                                      asChild
+                                    >
+                                      <Link
+                                        href={`/dashboard/installments?plan=${plan.id}`}
+                                      >
+                                        View Installments
+                                      </Link>
+                                    </Button>
+                                  </div>
                                 </td>
                               </tr>
                             );
