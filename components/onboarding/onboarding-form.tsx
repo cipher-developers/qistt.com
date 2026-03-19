@@ -9,15 +9,22 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency } from "@/lib/utils";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   AlertCircle,
+  Check,
   CheckCircle2,
+  ChevronsUpDown,
   ChevronLeft,
   ChevronRight,
   CreditCard,
@@ -107,6 +114,80 @@ type OnboardingFormProps = {
   purchases: Purchase[];
 };
 
+type SearchableSelectOption = {
+  value: string;
+  label: string;
+  searchText?: string;
+};
+
+type SearchableSelectProps = {
+  value: string;
+  onValueChange: (value: string) => void;
+  placeholder: string;
+  searchPlaceholder: string;
+  emptyMessage: string;
+  options: SearchableSelectOption[];
+  triggerClassName?: string;
+};
+
+function SearchableSelect({
+  value,
+  onValueChange,
+  placeholder,
+  searchPlaceholder,
+  emptyMessage,
+  options,
+  triggerClassName,
+}: SearchableSelectProps) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.value === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={`w-full justify-between font-normal ${triggerClassName || "h-11 rounded-xl border-slate-200"}`}
+        >
+          <span className="truncate text-left">
+            {selected ? selected.label : placeholder}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+      >
+        <Command>
+          <CommandInput placeholder={searchPlaceholder} />
+          <CommandList>
+            <CommandEmpty>{emptyMessage}</CommandEmpty>
+            {options.map((option) => (
+              <CommandItem
+                key={option.value}
+                value={`${option.label} ${option.searchText || ""}`}
+                onSelect={() => {
+                  onValueChange(option.value);
+                  setOpen(false);
+                }}
+              >
+                <Check
+                  className={`mr-2 h-4 w-4 ${value === option.value ? "opacity-100" : "opacity-0"}`}
+                />
+                <span className="truncate">{option.label}</span>
+              </CommandItem>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function OnboardingForm({
   tenantId,
   customers,
@@ -150,11 +231,11 @@ export function OnboardingForm({
   );
 
   const [formData, setFormData] = useState({
-    customerId: customers[0]?.id ? String(customers[0].id) : "",
-    vendorId: vendors[0]?.id ? String(vendors[0].id) : "",
-    itemId: items[0]?.id ? String(items[0].id) : "",
-    purchaseId: purchases[0]?.id ? String(purchases[0].id) : "",
-    categoryId: categories[0]?.id || "",
+    customerId: "",
+    vendorId: "",
+    itemId: "",
+    purchaseId: "",
+    categoryId: "",
     sellingPrice: "",
     advancePaid: "0",
     months: "12",
@@ -518,7 +599,7 @@ export function OnboardingForm({
 
   function canProceedFromCurrentStep() {
     if (step === 1) {
-      return Boolean(formData.customerId && formData.purchaseId);
+      return Boolean(formData.customerId && selectedPurchase);
     }
 
     if (step === 2) {
@@ -534,8 +615,14 @@ export function OnboardingForm({
   }
 
   function getStepError() {
-    if (step === 1 && (!formData.customerId || !formData.purchaseId)) {
-      return "Please make sure customer and purchase lot are selected.";
+    if (step === 1) {
+      if (!formData.customerId) {
+        return "Please select or create a customer first.";
+      }
+
+      if (!selectedPurchase) {
+        return "Please select an available purchase lot or create a new one.";
+      }
     }
 
     if (step === 2) {
@@ -656,7 +743,7 @@ export function OnboardingForm({
 
       <form
         onSubmit={handleSubmit}
-        className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"
+        className={`grid gap-6 ${step === 1 ? "grid-cols-1" : "lg:grid-cols-[1.2fr_0.8fr]"}`}
       >
         <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
           {step === 1 ? (
@@ -690,7 +777,7 @@ export function OnboardingForm({
                   </div>
 
                   {customerMode === "select" ? (
-                    <Select
+                    <SearchableSelect
                       value={formData.customerId}
                       onValueChange={(value) =>
                         setFormData((current) => ({
@@ -698,22 +785,15 @@ export function OnboardingForm({
                           customerId: value,
                         }))
                       }
-                    >
-                      <SelectTrigger className="h-11 rounded-xl border-slate-200">
-                        <SelectValue placeholder="Select customer" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {customersState.map((customer) => (
-                          <SelectItem
-                            key={customer.id}
-                            value={String(customer.id)}
-                          >
-                            {customer.name}{" "}
-                            {customer.phone ? `(${customer.phone})` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select customer"
+                      searchPlaceholder="Search customer..."
+                      emptyMessage="No customer found."
+                      options={customersState.map((customer) => ({
+                        value: String(customer.id),
+                        label: `${customer.name}${customer.phone ? ` (${customer.phone})` : ""}`,
+                        searchText: `${customer.name} ${customer.phone || ""}`,
+                      }))}
+                    />
                   ) : (
                     <div className="space-y-2">
                       <Input
@@ -824,7 +904,7 @@ export function OnboardingForm({
                   </div>
 
                   {vendorMode === "select" ? (
-                    <Select
+                    <SearchableSelect
                       value={formData.vendorId}
                       onValueChange={(value) =>
                         setFormData((current) => ({
@@ -833,18 +913,15 @@ export function OnboardingForm({
                           purchaseId: "",
                         }))
                       }
-                    >
-                      <SelectTrigger className="h-11 rounded-xl border-slate-200">
-                        <SelectValue placeholder="Select vendor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {vendorsState.map((vendor) => (
-                          <SelectItem key={vendor.id} value={String(vendor.id)}>
-                            {vendor.name} ({vendor.phone})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select vendor"
+                      searchPlaceholder="Search vendor..."
+                      emptyMessage="No vendor found."
+                      options={vendorsState.map((vendor) => ({
+                        value: String(vendor.id),
+                        label: `${vendor.name} (${vendor.phone})`,
+                        searchText: `${vendor.name} ${vendor.phone}`,
+                      }))}
+                    />
                   ) : (
                     <div className="space-y-2">
                       <Input
@@ -944,7 +1021,7 @@ export function OnboardingForm({
                   </div>
 
                   {itemMode === "select" ? (
-                    <Select
+                    <SearchableSelect
                       value={formData.itemId}
                       onValueChange={(value) =>
                         setFormData((current) => ({
@@ -953,18 +1030,15 @@ export function OnboardingForm({
                           purchaseId: "",
                         }))
                       }
-                    >
-                      <SelectTrigger className="h-11 rounded-xl border-slate-200">
-                        <SelectValue placeholder="Select item" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {itemsState.map((item) => (
-                          <SelectItem key={item.id} value={String(item.id)}>
-                            {item.name} ({item.category.name})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select item"
+                      searchPlaceholder="Search item..."
+                      emptyMessage="No item found."
+                      options={itemsState.map((item) => ({
+                        value: String(item.id),
+                        label: `${item.name} (${item.category.name})`,
+                        searchText: `${item.name} ${item.category.name}`,
+                      }))}
+                    />
                   ) : (
                     <div className="space-y-2">
                       <Input
@@ -1050,7 +1124,7 @@ export function OnboardingForm({
                         </div>
 
                         {categoryMode === "select" ? (
-                          <Select
+                          <SearchableSelect
                             value={formData.categoryId}
                             onValueChange={(value) =>
                               setFormData((current) => ({
@@ -1058,21 +1132,16 @@ export function OnboardingForm({
                                 categoryId: value,
                               }))
                             }
-                          >
-                            <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-white">
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {categoriesState.map((category) => (
-                                <SelectItem
-                                  key={category.id}
-                                  value={category.id}
-                                >
-                                  {category.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            placeholder="Select category"
+                            searchPlaceholder="Search category..."
+                            emptyMessage="No category found."
+                            triggerClassName="h-10 rounded-lg border-slate-200 bg-white"
+                            options={categoriesState.map((category) => ({
+                              value: category.id,
+                              label: category.name,
+                              searchText: category.name,
+                            }))}
+                          />
                         ) : (
                           <Input
                             placeholder="New category name"
@@ -1139,7 +1208,7 @@ export function OnboardingForm({
 
                   {purchaseMode === "select" ? (
                     <div className="space-y-2">
-                      <Select
+                      <SearchableSelect
                         value={formData.purchaseId}
                         onValueChange={(value) => {
                           const chosen = filteredPurchases.find(
@@ -1156,22 +1225,15 @@ export function OnboardingForm({
                               : current.vendorId,
                           }));
                         }}
-                      >
-                        <SelectTrigger className="h-11 rounded-xl border-slate-200">
-                          <SelectValue placeholder="Select purchase lot" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {filteredPurchases.map((purchase) => (
-                            <SelectItem
-                              key={purchase.id}
-                              value={String(purchase.id)}
-                            >
-                              #{purchase.id} {purchase.item.name} •{" "}
-                              {purchase.vendor.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        placeholder="Select purchase lot"
+                        searchPlaceholder="Search lot, item, or vendor..."
+                        emptyMessage="No purchase lot found."
+                        options={filteredPurchases.map((purchase) => ({
+                          value: String(purchase.id),
+                          label: `#${purchase.id} ${purchase.item.name} • ${purchase.vendor.name}`,
+                          searchText: `${purchase.id} ${purchase.item.name} ${purchase.vendor.name}`,
+                        }))}
+                      />
                       {selectedPurchase ? (
                         <p className="text-xs text-slate-500">
                           Remaining {selectedPurchaseRemaining} out of{" "}
@@ -1529,78 +1591,82 @@ export function OnboardingForm({
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-            <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-              Live Summary
-            </h4>
-            <div className="mt-3 space-y-3 text-sm">
-              <div className="flex items-center gap-2 text-slate-700">
-                <User size={15} className="text-slate-500" />
-                <span className="truncate">
-                  {selectedCustomer?.name || "No customer selected"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-700">
-                <User size={15} className="text-slate-500" />
-                <span className="truncate">
-                  {selectedPurchase?.vendor.name ||
-                    selectedVendor?.name ||
-                    "No vendor selected"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-700">
-                <Package size={15} className="text-slate-500" />
-                <span className="truncate">
-                  {selectedItem?.name || "No item selected"}
-                  {selectedPurchase
-                    ? ` (Lot #${selectedPurchase.id}, ${selectedPurchaseRemaining} left)`
-                    : ""}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-700">
-                <CreditCard size={15} className="text-slate-500" />
-                <span>
-                  {months > 0 ? `${months} month duration` : "Duration not set"}
-                </span>
+        {step !== 1 ? (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+              <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Live Summary
+              </h4>
+              <div className="mt-3 space-y-3 text-sm">
+                <div className="flex items-center gap-2 text-slate-700">
+                  <User size={15} className="text-slate-500" />
+                  <span className="truncate">
+                    {selectedCustomer?.name || "No customer selected"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-700">
+                  <User size={15} className="text-slate-500" />
+                  <span className="truncate">
+                    {selectedPurchase?.vendor.name ||
+                      selectedVendor?.name ||
+                      "No vendor selected"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-700">
+                  <Package size={15} className="text-slate-500" />
+                  <span className="truncate">
+                    {selectedItem?.name || "No item selected"}
+                    {selectedPurchase
+                      ? ` (Lot #${selectedPurchase.id}, ${selectedPurchaseRemaining} left)`
+                      : ""}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-700">
+                  <CreditCard size={15} className="text-slate-500" />
+                  <span>
+                    {months > 0
+                      ? `${months} month duration`
+                      : "Duration not set"}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-              Payment Breakdown
-            </h4>
-            <div className="mt-3 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-600">Total</span>
-                <span className="font-medium text-slate-900">
-                  {formatCurrency(sellingPrice)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Advance</span>
-                <span className="font-medium text-slate-900">
-                  {formatCurrency(advancePaid)}
-                </span>
-              </div>
-              <div className="flex justify-between border-t border-slate-200 pt-2">
-                <span className="text-slate-600">Remaining</span>
-                <span className="font-semibold text-slate-900">
-                  {formatCurrency(remainingBalance)}
-                </span>
-              </div>
-              <div className="mt-3 rounded-lg bg-cyan-50 px-3 py-2 text-cyan-900">
-                <div className="text-xs uppercase tracking-wide text-cyan-700">
-                  Monthly Installment
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Payment Breakdown
+              </h4>
+              <div className="mt-3 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Total</span>
+                  <span className="font-medium text-slate-900">
+                    {formatCurrency(sellingPrice)}
+                  </span>
                 </div>
-                <div className="text-lg font-semibold">
-                  {formatCurrency(monthlyAmount)}
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Advance</span>
+                  <span className="font-medium text-slate-900">
+                    {formatCurrency(advancePaid)}
+                  </span>
+                </div>
+                <div className="flex justify-between border-t border-slate-200 pt-2">
+                  <span className="text-slate-600">Remaining</span>
+                  <span className="font-semibold text-slate-900">
+                    {formatCurrency(remainingBalance)}
+                  </span>
+                </div>
+                <div className="mt-3 rounded-lg bg-cyan-50 px-3 py-2 text-cyan-900">
+                  <div className="text-xs uppercase tracking-wide text-cyan-700">
+                    Monthly Installment
+                  </div>
+                  <div className="text-lg font-semibold">
+                    {formatCurrency(monthlyAmount)}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        ) : null}
       </form>
     </Card>
   );
