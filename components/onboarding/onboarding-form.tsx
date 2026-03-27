@@ -273,7 +273,6 @@ export function OnboardingForm({
     email: "",
     cnic: "",
     address: "",
-    createdAt: toDateInputValue(new Date()),
   });
 
   const [vendorCreate, setVendorCreate] = useState({
@@ -289,8 +288,6 @@ export function OnboardingForm({
     model: "",
     description: "",
     sku: "",
-    costPrice: "",
-    sellingPrice: "",
     categoryName: "",
   });
 
@@ -515,8 +512,6 @@ export function OnboardingForm({
           model: itemCreate.model,
           description: itemCreate.description,
           sku: itemCreate.sku,
-          costPrice: itemCreate.costPrice,
-          sellingPrice: itemCreate.sellingPrice,
           categoryId,
           tenantId,
         }),
@@ -866,16 +861,7 @@ export function OnboardingForm({
                           }))
                         }
                       />
-                      <Input
-                        type="date"
-                        value={customerCreate.createdAt}
-                        onChange={(event) =>
-                          setCustomerCreate((current) => ({
-                            ...current,
-                            createdAt: event.target.value,
-                          }))
-                        }
-                      />
+
                       <Textarea
                         rows={3}
                         placeholder="Address"
@@ -1099,34 +1085,7 @@ export function OnboardingForm({
                           }))
                         }
                       />
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          placeholder="Cost price"
-                          value={itemCreate.costPrice}
-                          onChange={(event) =>
-                            setItemCreate((current) => ({
-                              ...current,
-                              costPrice: event.target.value,
-                            }))
-                          }
-                        />
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          placeholder="Selling price"
-                          value={itemCreate.sellingPrice}
-                          onChange={(event) =>
-                            setItemCreate((current) => ({
-                              ...current,
-                              sellingPrice: event.target.value,
-                            }))
-                          }
-                        />
-                      </div>
+
 
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
                         <div className="mb-2 flex items-center justify-between">
