@@ -1086,7 +1086,6 @@ export function OnboardingForm({
                         }
                       />
 
-
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
                         <div className="mb-2 flex items-center justify-between">
                           <Label className="text-xs uppercase tracking-wide text-slate-500">
