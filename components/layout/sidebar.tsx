@@ -21,11 +21,11 @@ import { cn } from "@/lib/utils";
 
 const MENU_ITEMS = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
+  { icon: BarChart3, label: "Plans", href: "/dashboard/ledger" },
   { icon: Package, label: "Items", href: "/dashboard/items" },
   { icon: Handshake, label: "Vendors", href: "/dashboard/vendors" },
   { icon: ShoppingCart, label: "Purchases", href: "/dashboard/purchases" },
   { icon: Users, label: "Customers", href: "/dashboard/customers" },
-  { icon: BarChart3, label: "Plans", href: "/dashboard/ledger" },
   { icon: ListChecks, label: "Installments", href: "/dashboard/installments" },
   { icon: FileText, label: "Transactions", href: "/dashboard/transactions" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },

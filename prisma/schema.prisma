@@ -155,6 +155,7 @@ model Purchase {
 
 model InstallmentPlan {
   id              Int      @id @default(autoincrement())
+  account_number  Int?
   customerId      Int
   customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   itemId          Int

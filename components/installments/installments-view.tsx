@@ -57,6 +57,7 @@ interface InstallmentRecord {
   }[];
   plan: {
     id: number;
+    account_number?: number | null;
     customerId: number;
     customer: {
       id: number;
@@ -285,6 +286,7 @@ export function InstallmentsView({
           String(i.plan.customer.id).includes(q) ||
           i.plan.item.name.toLowerCase().includes(q) ||
           String(i.plan.id).includes(q) ||
+          String(i.plan.account_number ?? "").includes(q) ||
           String(i.installmentNumber).includes(q) ||
           i.status.toLowerCase().includes(q),
       );
@@ -361,6 +363,7 @@ export function InstallmentsView({
         item: i.plan.item.name,
         totalItemSellingPrice: i.plan.sellingPrice,
         planId: i.plan.id,
+        accountNumber: i.plan.account_number ?? "",
         installmentNumber: i.installmentNumber,
         dueDate: new Date(i.dueDate).toISOString().slice(0, 10),
         amount: i.amount,
@@ -380,6 +383,7 @@ export function InstallmentsView({
       "Item",
       "Total Item Selling Price",
       "Plan #",
+      "Account Number",
       "Installment #",
       "Due Date",
       "Amount",
@@ -398,6 +402,7 @@ export function InstallmentsView({
           row.item,
           row.totalItemSellingPrice,
           row.planId,
+          row.accountNumber,
           row.installmentNumber,
           row.dueDate,
           row.amount,
@@ -430,6 +435,7 @@ export function InstallmentsView({
             <td>${row.item}</td>
             <td>${row.totalItemSellingPrice}</td>
             <td>${row.planId}</td>
+            <td>${row.accountNumber}</td>
             <td>${row.installmentNumber}</td>
             <td>${row.dueDate}</td>
             <td>${row.amount}</td>
@@ -450,6 +456,7 @@ export function InstallmentsView({
             <th>Item</th>
             <th>Total Item Selling Price</th>
             <th>Plan #</th>
+            <th>Account Number</th>
             <th>Installment #</th>
             <th>Due Date</th>
             <th>Amount</th>
@@ -899,6 +906,9 @@ export function InstallmentsView({
                       </button>
                     </th>
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Account #
+                    </th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       <button
                         type="button"
                         onClick={() => toggleSort("customer")}
@@ -987,6 +997,11 @@ export function InstallmentsView({
                     return (
                       <tr key={installment.id} className="hover:bg-slate-50/70">
                         <td className="px-5 py-3.5">
+                          <td className="px-5 py-3.5">
+                            <span className="text-sm text-slate-700">
+                              {installment.plan.account_number ?? "-"}
+                            </span>
+                          </td>
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-semibold text-slate-700">
                               #{installment.plan.id}

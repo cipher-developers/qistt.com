@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -96,7 +96,31 @@ export function OnboardingForm({
     advancePaid: "0",
     months: "12",
     createdAt: toDateInputValue(new Date()),
+    account_number: "",
   });
+
+  // Fetch next account number on mount
+  useEffect(() => {
+    let ignore = false;
+    async function fetchNextAccountNumber() {
+      if (!tenantId) return;
+      try {
+        const res = await fetch("/api/installment-plans/next-account-number");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!ignore && data.nextAccountNumber) {
+          setFormData((prev) => ({
+            ...prev,
+            account_number: String(data.nextAccountNumber),
+          }));
+        }
+      } catch {}
+    }
+    fetchNextAccountNumber();
+    return () => {
+      ignore = true;
+    };
+  }, [tenantId]);
 
   const selectedPurchase = purchases.find(
     (p) => String(p.id) === formData.purchaseId,
@@ -207,6 +231,9 @@ export function OnboardingForm({
           months: parseInt(formData.months),
           createdAt: formData.createdAt,
           tenantId,
+          account_number: formData.account_number
+            ? parseInt(formData.account_number)
+            : undefined,
         }),
       });
 
@@ -467,6 +494,29 @@ export function OnboardingForm({
 
           {step === 2 ? (
             <div className="space-y-4">
+              <div>
+                <Label
+                  htmlFor="account_number"
+                  className="text-slate-700 font-medium"
+                >
+                  Account Number
+                </Label>
+                <Input
+                  id="account_number"
+                  type="number"
+                  min="0"
+                  value={formData.account_number}
+                  onChange={(e) =>
+                    setFormData({ ...formData, account_number: e.target.value })
+                  }
+                  className="mt-1 h-11 rounded-xl border-slate-200 font-mono text-lg"
+                  placeholder="Account number"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  This will be the unique account number for this plan. Default
+                  is next available, but you can edit it.
+                </p>
+              </div>
               <h3 className="text-base font-semibold text-slate-900">
                 Set payment terms
               </h3>
@@ -589,6 +639,12 @@ export function OnboardingForm({
                     <span className="text-slate-600">Customer</span>
                     <span className="font-medium text-slate-900">
                       {selectedCustomer?.name || "-"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-600">Account Number</span>
+                    <span className="font-medium text-slate-900">
+                      {formData.account_number || "-"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-3">

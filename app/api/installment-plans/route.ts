@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       advancePaid,
       months,
       createdAt,
+      account_number,
     } = await request.json();
 
     const customerIdValue = Number(customerId);
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
     const advancePaidValue = Number(advancePaid ?? 0);
     const monthsValue = Number(months);
     const createdAtValue = createdAt ? new Date(createdAt) : new Date();
+    const accountNumberValue = account_number !== undefined && account_number !== null && account_number !== "" ? Number(account_number) : undefined;
 
     if (
       !Number.isInteger(customerIdValue) ||
@@ -96,6 +98,7 @@ export async function POST(request: NextRequest) {
           startDate: createdAtValue,
           createdAt: createdAtValue,
           tenantId: tenant.id,
+          account_number: accountNumberValue,
         },
       });
 
