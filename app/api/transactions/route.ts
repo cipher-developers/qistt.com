@@ -58,14 +58,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (amountValue > remainingInstallment) {
-      return NextResponse.json(
-        {
-          error: `Amount exceeds remaining installment balance (${remainingInstallment.toFixed(2)})`,
-        },
-        { status: 400 },
-      );
-    }
+    // if (amountValue > remainingInstallment) {
+    //   return NextResponse.json(
+    //     {
+    //       error: `Amount exceeds remaining installment balance (${remainingInstallment.toFixed(2)})`,
+    //     },
+    //     { status: 400 },
+    //   );
+    // }
 
     const transaction = await prisma.$transaction(async (tx) => {
       const createdTransaction = await tx.transaction.create({
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
       },
       include: {
         plan: {
-          include: { customer: true, item: true },
+          include: { customer: true, item: true, account_number: true },
         },
         installment: {
           select: {

@@ -84,10 +84,10 @@ export function TransactionForm({
       return;
     }
 
-    if (selectedInstallment && amountValue > remainingBalance) {
-      setError("Amount cannot exceed remaining installment balance");
-      return;
-    }
+    // if (selectedInstallment && amountValue > remainingBalance) {
+    //   setError("Amount cannot exceed remaining installment balance");
+    //   return;
+    // }
 
     setError("");
     setLoading(true);

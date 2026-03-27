@@ -38,6 +38,7 @@ interface Transaction {
   };
   plan: {
     sellingPrice: number;
+    account_number?: number | null;
     customer: { id: number; name: string; phone: string };
     item: { id: number; name: string };
   };
@@ -92,6 +93,7 @@ export function TransactionsView({
   initialTransactionId?: number;
 }) {
   const [search, setSearch] = useState("");
+  const [groupBy, setGroupBy] = useState<"none" | "account">("none");
   const [showBanner, setShowBanner] = useState(justCreated ?? false);
   const [datePreset, setDatePreset] = useState<
     "this-month" | "last-30" | "all" | "custom"
@@ -290,11 +292,9 @@ export function TransactionsView({
 
   const sortedTransactions = useMemo(() => {
     const rows = [...filtered];
-
     rows.sort((a, b) => {
       let left: string | number = "";
       let right: string | number = "";
-
       if (sortKey === "customer") {
         left = a.plan.customer.name.toLowerCase();
         right = b.plan.customer.name.toLowerCase();
@@ -314,14 +314,32 @@ export function TransactionsView({
         left = new Date(a.transactionDate).getTime();
         right = new Date(b.transactionDate).getTime();
       }
-
       if (left < right) return sortDirection === "asc" ? -1 : 1;
       if (left > right) return sortDirection === "asc" ? 1 : -1;
       return b.id - a.id;
     });
-
     return rows;
   }, [filtered, sortDirection, sortKey]);
+
+  // Group by account number if selected
+  const groupedByAccount = useMemo(() => {
+    if (groupBy !== "account") return null;
+    const groups: Record<string, Transaction[]> = {};
+    for (const t of sortedTransactions) {
+      const key =
+        t.plan.account_number != null
+          ? String(t.plan.account_number)
+          : "No Account #";
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(t);
+    }
+    // Sort groups by account number (numeric, "No Account #" last)
+    return Object.entries(groups).sort((a, b) => {
+      if (a[0] === "No Account #") return 1;
+      if (b[0] === "No Account #") return -1;
+      return Number(a[0]) - Number(b[0]);
+    });
+  }, [sortedTransactions, groupBy]);
 
   const rangeStats = useMemo(() => {
     const total = dateFiltered.reduce((sum, t) => sum + t.amount, 0);
@@ -561,6 +579,16 @@ export function TransactionsView({
               className="h-11 rounded-xl border-slate-200 bg-white pl-9 text-sm"
             />
           </div>
+          <div>
+            <select
+              className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm"
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value as "none" | "account")}
+            >
+              <option value="none">No Grouping</option>
+              <option value="account">Group by Account #</option>
+            </select>
+          </div>
           {search && (
             <Button
               variant="outline"
@@ -590,7 +618,11 @@ export function TransactionsView({
           </Button>
         </div>
 
-        {sortedTransactions.length === 0 ? (
+        {(
+          groupBy === "account"
+            ? groupedByAccount?.length === 0
+            : sortedTransactions.length === 0
+        ) ? (
           <div className="p-10 text-center sm:p-16">
             {transactions.length === 0 ? (
               <>
@@ -640,156 +672,292 @@ export function TransactionsView({
         ) : (
           <>
             <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-245">
-                <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50">
-                  <tr>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      <button
-                        type="button"
-                        onClick={() => toggleSort("customer")}
-                        className="inline-flex items-center gap-1.5"
+              {groupBy === "account" && groupedByAccount ? (
+                groupedByAccount.map(([account, txs]) => (
+                  <div key={account} className="mb-8">
+                    <div className="bg-slate-100 px-4 py-2 font-semibold text-slate-700 rounded-t-lg border-b border-slate-200">
+                      Account #: {account}
+                    </div>
+                    <table className="w-full min-w-245">
+                      <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50">
+                        <tr>
+                          <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Customer
+                          </th>
+                          <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Account #
+                          </th>
+                          <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Item
+                          </th>
+                          <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Installment
+                          </th>
+                          <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Note
+                          </th>
+                          <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Amount
+                          </th>
+                          <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Date
+                          </th>
+                          <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Action
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {txs.map((t) => (
+                          <tr
+                            key={t.id}
+                            className="transition-colors odd:bg-white even:bg-slate-50/40 hover:bg-slate-50/80"
+                          >
+                            <td className="px-5 py-3.5">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
+                                  {getInitials(t.plan.customer.name)}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="truncate text-sm font-medium text-slate-900">
+                                      {t.plan.customer.name}
+                                    </span>
+                                    <EntityViewButton
+                                      label={`customer ${t.plan.customer.name}`}
+                                      className="shrink-0"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        setViewingCustomerId(
+                                          t.plan.customer.id,
+                                        );
+                                      }}
+                                    />
+                                  </div>
+                                  <p className="truncate text-xs text-slate-500">
+                                    {t.plan.customer.phone}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-5 py-3.5 text-sm text-slate-700">
+                              {t.plan.account_number ?? "-"}
+                            </td>
+                            <td className="px-5 py-3.5 text-sm text-slate-600">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="truncate">
+                                    {t.plan.item.name}
+                                  </span>
+                                  <EntityViewButton
+                                    label={`item ${t.plan.item.name}`}
+                                    className="shrink-0"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      setViewingItemId(t.plan.item.id);
+                                    }}
+                                  />
+                                </div>
+                                <p className="truncate text-xs text-slate-500">
+                                  Selling: {formatCurrency(t.plan.sellingPrice)}
+                                </p>
+                              </div>
+                            </td>
+                            <td className="px-5 py-3.5 text-sm text-slate-500">
+                              {t.installment ? (
+                                <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
+                                  #{t.installment.installmentNumber} (
+                                  {t.installment.status})
+                                </span>
+                              ) : (
+                                <span className="select-none">-</span>
+                              )}
+                            </td>
+                            <td className="px-5 py-3.5 text-sm text-slate-400">
+                              {t.description ?? (
+                                <span className="select-none">-</span>
+                              )}
+                            </td>
+                            <td className="px-5 py-3.5 text-right">
+                              <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-sm font-semibold text-green-700">
+                                {formatCurrency(t.amount)}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3.5 text-right text-sm text-slate-500">
+                              {formatDate(t.transactionDate)}
+                            </td>
+                            <td className="px-5 py-3.5 text-right">
+                              <EntityViewButton
+                                label={`transaction ${t.id}`}
+                                onClick={() => setViewingTransactionId(t.id)}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))
+              ) : (
+                <table className="w-full min-w-245">
+                  <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50">
+                    <tr>
+                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        <button
+                          type="button"
+                          onClick={() => toggleSort("customer")}
+                          className="inline-flex items-center gap-1.5"
+                        >
+                          Customer
+                          <SortIcon forKey="customer" />
+                        </button>
+                      </th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Account #
+                      </th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        <button
+                          type="button"
+                          onClick={() => toggleSort("item")}
+                          className="inline-flex items-center gap-1.5"
+                        >
+                          Item
+                          <SortIcon forKey="item" />
+                        </button>
+                      </th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        <button
+                          type="button"
+                          onClick={() => toggleSort("installment")}
+                          className="inline-flex items-center gap-1.5"
+                        >
+                          Installment
+                          <SortIcon forKey="installment" />
+                        </button>
+                      </th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        <button
+                          type="button"
+                          onClick={() => toggleSort("note")}
+                          className="inline-flex items-center gap-1.5"
+                        >
+                          Note
+                          <SortIcon forKey="note" />
+                        </button>
+                      </th>
+                      <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        <button
+                          type="button"
+                          onClick={() => toggleSort("amount")}
+                          className="inline-flex items-center gap-1.5"
+                        >
+                          Amount
+                          <SortIcon forKey="amount" />
+                        </button>
+                      </th>
+                      <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        <button
+                          type="button"
+                          onClick={() => toggleSort("date")}
+                          className="inline-flex items-center gap-1.5"
+                        >
+                          Date
+                          <SortIcon forKey="date" />
+                        </button>
+                      </th>
+                      <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {sortedTransactions.map((t) => (
+                      <tr
+                        key={t.id}
+                        className="transition-colors odd:bg-white even:bg-slate-50/40 hover:bg-slate-50/80"
                       >
-                        Customer
-                        <SortIcon forKey="customer" />
-                      </button>
-                    </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      <button
-                        type="button"
-                        onClick={() => toggleSort("item")}
-                        className="inline-flex items-center gap-1.5"
-                      >
-                        Item
-                        <SortIcon forKey="item" />
-                      </button>
-                    </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      <button
-                        type="button"
-                        onClick={() => toggleSort("installment")}
-                        className="inline-flex items-center gap-1.5"
-                      >
-                        Installment
-                        <SortIcon forKey="installment" />
-                      </button>
-                    </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      <button
-                        type="button"
-                        onClick={() => toggleSort("note")}
-                        className="inline-flex items-center gap-1.5"
-                      >
-                        Note
-                        <SortIcon forKey="note" />
-                      </button>
-                    </th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      <button
-                        type="button"
-                        onClick={() => toggleSort("amount")}
-                        className="inline-flex items-center gap-1.5"
-                      >
-                        Amount
-                        <SortIcon forKey="amount" />
-                      </button>
-                    </th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      <button
-                        type="button"
-                        onClick={() => toggleSort("date")}
-                        className="inline-flex items-center gap-1.5"
-                      >
-                        Date
-                        <SortIcon forKey="date" />
-                      </button>
-                    </th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {sortedTransactions.map((t) => (
-                    <tr
-                      key={t.id}
-                      className="transition-colors odd:bg-white even:bg-slate-50/40 hover:bg-slate-50/80"
-                    >
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
-                            {getInitials(t.plan.customer.name)}
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
+                              {getInitials(t.plan.customer.name)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="truncate text-sm font-medium text-slate-900">
+                                  {t.plan.customer.name}
+                                </span>
+                                <EntityViewButton
+                                  label={`customer ${t.plan.customer.name}`}
+                                  className="shrink-0"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setViewingCustomerId(t.plan.customer.id);
+                                  }}
+                                />
+                              </div>
+                              <p className="truncate text-xs text-slate-500">
+                                {t.plan.customer.phone}
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1">
+                        </td>
+                        <td className="px-5 py-3.5 text-sm text-slate-700">
+                          {t.plan.account_number ?? "-"}
+                        </td>
+                        <td className="px-5 py-3.5 text-sm text-slate-600">
+                          <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="truncate text-sm font-medium text-slate-900">
-                                {t.plan.customer.name}
+                              <span className="truncate">
+                                {t.plan.item.name}
                               </span>
                               <EntityViewButton
-                                label={`customer ${t.plan.customer.name}`}
+                                label={`item ${t.plan.item.name}`}
                                 className="shrink-0"
                                 onClick={(event) => {
                                   event.stopPropagation();
-                                  setViewingCustomerId(t.plan.customer.id);
+                                  setViewingItemId(t.plan.item.id);
                                 }}
                               />
                             </div>
                             <p className="truncate text-xs text-slate-500">
-                              {t.plan.customer.phone}
+                              Selling: {formatCurrency(t.plan.sellingPrice)}
                             </p>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5 text-sm text-slate-600">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="truncate">{t.plan.item.name}</span>
-                            <EntityViewButton
-                              label={`item ${t.plan.item.name}`}
-                              className="shrink-0"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setViewingItemId(t.plan.item.id);
-                              }}
-                            />
-                          </div>
-                          <p className="truncate text-xs text-slate-500">
-                            Selling: {formatCurrency(t.plan.sellingPrice)}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5 text-sm text-slate-500">
-                        {t.installment ? (
-                          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
-                            #{t.installment.installmentNumber} (
-                            {t.installment.status})
+                        </td>
+                        <td className="px-5 py-3.5 text-sm text-slate-500">
+                          {t.installment ? (
+                            <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
+                              #{t.installment.installmentNumber} (
+                              {t.installment.status})
+                            </span>
+                          ) : (
+                            <span className="select-none">-</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-sm text-slate-400">
+                          {t.description ?? (
+                            <span className="select-none">-</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-sm font-semibold text-green-700">
+                            {formatCurrency(t.amount)}
                           </span>
-                        ) : (
-                          <span className="select-none">-</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5 text-sm text-slate-400">
-                        {t.description ?? (
-                          <span className="select-none">-</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-sm font-semibold text-green-700">
-                          {formatCurrency(t.amount)}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-right text-sm text-slate-500">
-                        {formatDate(t.transactionDate)}
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <EntityViewButton
-                          label={`transaction ${t.id}`}
-                          onClick={() => setViewingTransactionId(t.id)}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        </td>
+                        <td className="px-5 py-3.5 text-right text-sm text-slate-500">
+                          {formatDate(t.transactionDate)}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <EntityViewButton
+                            label={`transaction ${t.id}`}
+                            onClick={() => setViewingTransactionId(t.id)}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
 
             <div className="divide-y divide-slate-100 md:hidden">
@@ -829,6 +997,10 @@ export function TransactionsView({
                             onClick={() => setViewingItemId(t.plan.item.id)}
                           />
                         </div>
+                        <p className="truncate text-[11px] text-slate-500">
+                          <span className="font-semibold">Account #:</span>{" "}
+                          {t.plan.account_number ?? "-"}
+                        </p>
                         <p className="truncate text-[11px] text-slate-500">
                           Selling: {formatCurrency(t.plan.sellingPrice)}
                         </p>

@@ -948,6 +948,7 @@ export function PlansView({
                       (installment) => installment.status !== "paid",
                     );
                     const expanded = expandedPlanRows.has(plan.id);
+                    const completed = metrics.progress >= 100;
 
                     return (
                       <>
@@ -1028,6 +1029,9 @@ export function PlansView({
                               </div>
                               <p className="text-xs text-slate-500">
                                 {metrics.progress.toFixed(0)}%
+                                {completed && (
+                                  <span className="ml-2 inline-block rounded bg-emerald-100 px-2 py-0.5 text-emerald-700 text-[10px] font-bold uppercase">Completed</span>
+                                )}
                               </p>
                             </div>
                           </td>
@@ -1083,7 +1087,7 @@ export function PlansView({
                                   return (
                                     <div
                                       key={installment.id}
-                                      className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5"
+                                      className={`flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 ${completed ? "line-through text-slate-400 opacity-70" : ""}`}
                                     >
                                       <div className="flex items-center gap-4 text-sm">
                                         <p className="font-semibold text-slate-700">
@@ -1135,14 +1139,14 @@ export function PlansView({
                                         <Button
                                           size="sm"
                                           className="bg-slate-900 hover:bg-slate-800"
-                                          disabled={remaining <= 0}
+                                          disabled={remaining <= 0 || completed}
                                           onClick={() =>
                                             setSelectedInstallmentId(
                                               installment.id,
                                             )
                                           }
                                         >
-                                          {remaining > 0 ? "Record" : "Paid"}
+                                          {completed ? "Paid" : remaining > 0 ? "Record" : "Paid"}
                                         </Button>
                                       </div>
                                     </div>
@@ -1164,6 +1168,7 @@ export function PlansView({
                 const metrics = getPlanMetrics(plan);
                 const tone = getProgressTone(metrics.progress);
                 const expanded = expandedPlanRows.has(plan.id);
+                const completed = metrics.progress >= 100;
 
                 return (
                   <div key={plan.id} className="p-4 space-y-3">
@@ -1280,7 +1285,7 @@ export function PlansView({
                           return (
                             <div
                               key={installment.id}
-                              className="space-y-1 rounded-lg border border-slate-200 bg-white p-2.5"
+                              className={`space-y-1 rounded-lg border border-slate-200 bg-white p-2.5 ${completed ? "line-through text-slate-400 opacity-70" : ""}`}
                             >
                               <div className="flex items-center justify-between gap-2">
                                 <p className="text-xs font-semibold text-slate-700">
@@ -1329,12 +1334,12 @@ export function PlansView({
                                 <Button
                                   size="sm"
                                   className="bg-slate-900 hover:bg-slate-800"
-                                  disabled={remaining <= 0}
+                                  disabled={remaining <= 0 || completed}
                                   onClick={() =>
                                     setSelectedInstallmentId(installment.id)
                                   }
                                 >
-                                  {remaining > 0 ? "Record" : "Paid"}
+                                  {completed ? "Paid" : remaining > 0 ? "Record" : "Paid"}
                                 </Button>
                               </div>
                             </div>
