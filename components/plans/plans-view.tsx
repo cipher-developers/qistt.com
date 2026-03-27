@@ -183,15 +183,7 @@ export function PlansView({
   tenantName?: string;
 }) {
   const [search, setSearch] = useState("");
-  const [datePreset, setDatePreset] = useState<
-    "this-month" | "last-30" | "all" | "custom"
-  >("this-month");
-  const [fromDate, setFromDate] = useState<string>(
-    toDateInputValue(startOfCurrentMonth()),
-  );
-  const [toDate, setToDate] = useState<string>(
-    toDateInputValue(endOfCurrentMonth()),
-  );
+  // Date filtering removed: always show all plans
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
   const [revenueFilter, setRevenueFilter] = useState<RevenueFilter>("all");
   const [customerFilter, setCustomerFilter] = useState("all");
@@ -257,48 +249,10 @@ export function PlansView({
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [plans]);
 
-  function applyDatePreset(preset: "this-month" | "last-30" | "all") {
-    setDatePreset(preset);
+  // Date preset logic removed
 
-    if (preset === "all") {
-      setFromDate("");
-      setToDate("");
-      return;
-    }
-
-    if (preset === "last-30") {
-      const end = new Date();
-      const start = new Date();
-      start.setDate(end.getDate() - 29);
-      setFromDate(toDateInputValue(start));
-      setToDate(toDateInputValue(end));
-      return;
-    }
-
-    setFromDate(toDateInputValue(startOfCurrentMonth()));
-    setToDate(toDateInputValue(endOfCurrentMonth()));
-  }
-
-  const dateFilteredPlans = useMemo(() => {
-    return plans.filter((plan) => {
-      const created = new Date(plan.createdAt);
-      created.setHours(0, 0, 0, 0);
-
-      if (fromDate) {
-        const start = new Date(fromDate);
-        start.setHours(0, 0, 0, 0);
-        if (created < start) return false;
-      }
-
-      if (toDate) {
-        const end = new Date(toDate);
-        end.setHours(0, 0, 0, 0);
-        if (created > end) return false;
-      }
-
-      return true;
-    });
-  }, [plans, fromDate, toDate]);
+  // Always show all plans (no date filtering)
+  const dateFilteredPlans = plans;
 
   const filteredPlans = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -657,74 +611,7 @@ export function PlansView({
         </div>
       </section>
 
-      <Card className="border border-slate-200/70 bg-white/90 p-4 sm:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Created Date Range
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant={datePreset === "this-month" ? "default" : "outline"}
-                className={
-                  datePreset === "this-month"
-                    ? "bg-slate-900 hover:bg-slate-800"
-                    : "border-slate-300"
-                }
-                onClick={() => applyDatePreset("this-month")}
-              >
-                This Month
-              </Button>
-              <Button
-                size="sm"
-                variant={datePreset === "last-30" ? "default" : "outline"}
-                className={
-                  datePreset === "last-30"
-                    ? "bg-slate-900 hover:bg-slate-800"
-                    : "border-slate-300"
-                }
-                onClick={() => applyDatePreset("last-30")}
-              >
-                Last 30 Days
-              </Button>
-              <Button
-                size="sm"
-                variant={datePreset === "all" ? "default" : "outline"}
-                className={
-                  datePreset === "all"
-                    ? "bg-slate-900 hover:bg-slate-800"
-                    : "border-slate-300"
-                }
-                onClick={() => applyDatePreset("all")}
-              >
-                All Time
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <Input
-              type="date"
-              value={fromDate}
-              onChange={(event) => {
-                setDatePreset("custom");
-                setFromDate(event.target.value);
-              }}
-              className="h-10 rounded-xl border-slate-200 bg-white"
-            />
-            <Input
-              type="date"
-              value={toDate}
-              onChange={(event) => {
-                setDatePreset("custom");
-                setToDate(event.target.value);
-              }}
-              className="h-10 rounded-xl border-slate-200 bg-white"
-            />
-          </div>
-        </div>
-      </Card>
+      {/* Date range filter removed: always show all plans */}
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="border border-slate-200/70 bg-white/90 p-5">
@@ -912,7 +799,7 @@ export function PlansView({
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Plan ID
+                      Account #
                     </th>
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Customer
@@ -955,9 +842,9 @@ export function PlansView({
                         <tr key={plan.id} className="hover:bg-slate-50/70">
                           <td className="px-5 py-3.5 text-sm font-semibold text-slate-700">
                             <div className="flex items-center gap-1.5">
-                              #{plan.id}
+                              {plan.account_number}
                               <EntityViewButton
-                                label={`plan ${plan.id}`}
+                                label={`plan ${plan.account_number}`}
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   setViewingPlanId(plan.id);
@@ -1030,7 +917,9 @@ export function PlansView({
                               <p className="text-xs text-slate-500">
                                 {metrics.progress.toFixed(0)}%
                                 {completed && (
-                                  <span className="ml-2 inline-block rounded bg-emerald-100 px-2 py-0.5 text-emerald-700 text-[10px] font-bold uppercase">Completed</span>
+                                  <span className="ml-2 inline-block rounded bg-emerald-100 px-2 py-0.5 text-emerald-700 text-[10px] font-bold uppercase">
+                                    Completed
+                                  </span>
                                 )}
                               </p>
                             </div>
@@ -1146,7 +1035,11 @@ export function PlansView({
                                             )
                                           }
                                         >
-                                          {completed ? "Paid" : remaining > 0 ? "Record" : "Paid"}
+                                          {completed
+                                            ? "Paid"
+                                            : remaining > 0
+                                              ? "Record"
+                                              : "Paid"}
                                         </Button>
                                       </div>
                                     </div>
@@ -1176,10 +1069,10 @@ export function PlansView({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 truncate">
-                            Plan ID #{plan.id}
+                            Account # {plan.account_number}
                           </p>
                           <EntityViewButton
-                            label={`plan ${plan.id}`}
+                            label={`plan ${plan.account_number}`}
                             onClick={(event) => {
                               event.stopPropagation();
                               setViewingPlanId(plan.id);
@@ -1339,7 +1232,11 @@ export function PlansView({
                                     setSelectedInstallmentId(installment.id)
                                   }
                                 >
-                                  {completed ? "Paid" : remaining > 0 ? "Record" : "Paid"}
+                                  {completed
+                                    ? "Paid"
+                                    : remaining > 0
+                                      ? "Record"
+                                      : "Paid"}
                                 </Button>
                               </div>
                             </div>

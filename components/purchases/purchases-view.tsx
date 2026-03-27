@@ -80,6 +80,7 @@ type PurchasesViewProps = {
 export function PurchasesView({ purchases, vendors, items }: PurchasesViewProps) {
   const [query, setQuery] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
   const [datePreset, setDatePreset] = useState<
     "this-month" | "last-30" | "all" | "custom"
   >("this-month");
@@ -452,6 +453,16 @@ export function PurchasesView({ purchases, vendors, items }: PurchasesViewProps)
                   <div className="text-sm font-semibold text-slate-900">
                     {formatCurrency(row.unitCost * row.quantity)}
                   </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-lg"
+                      onClick={() => setEditingPurchase(row)}
+                    >
+                      Edit
+                    </Button>
+                  </div>
                 </div>
               );
             })}
@@ -488,9 +499,42 @@ export function PurchasesView({ purchases, vendors, items }: PurchasesViewProps)
                   <p>Balance: {remaining}</p>
                   <p>Unit: {formatCurrency(row.unitCost)}</p>
                 </div>
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setEditingPurchase(row)}
+                  >
+                    Edit
+                  </Button>
+                </div>
               </div>
             );
           })}
+      <Dialog open={Boolean(editingPurchase)} onOpenChange={(open) => !open && setEditingPurchase(null)}>
+        <DialogContent className="max-w-2xl rounded-2xl border-slate-200 bg-white p-0">
+          <DialogHeader className="border-b border-slate-100 px-6 py-5 text-left">
+            <DialogTitle className="text-xl text-slate-900">
+              Edit Purchase
+            </DialogTitle>
+            <DialogDescription>
+              Update purchase details.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-6">
+            {editingPurchase ? (
+              <PurchaseForm
+                vendors={vendors}
+                items={items}
+                mode="edit"
+                purchase={editingPurchase}
+                onSuccess={() => setEditingPurchase(null)}
+                onCancel={() => setEditingPurchase(null)}
+              />
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
           {filtered.length === 0 && (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-white/75 p-10 text-center text-slate-600">

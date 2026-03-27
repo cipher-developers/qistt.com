@@ -19,6 +19,7 @@ export default async function PlansWorkspacePage() {
       customerId: true,
       sellingPrice: true,
       advancePaid: true,
+      account_number: true,
       monthlyAmount: true,
       months: true,
       startDate: true,

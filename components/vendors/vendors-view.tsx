@@ -46,60 +46,14 @@ function endOfCurrentMonth() {
 
 export function VendorsView({ vendors }: { vendors: Vendor[] }) {
   const [query, setQuery] = useState("");
-  const [datePreset, setDatePreset] = useState<
-    "this-month" | "last-30" | "all" | "custom"
-  >("this-month");
-  const [fromDate, setFromDate] = useState<string>(
-    toDateInputValue(startOfCurrentMonth()),
-  );
-  const [toDate, setToDate] = useState<string>(
-    toDateInputValue(endOfCurrentMonth()),
-  );
+  // Date filtering removed: always show all vendors
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
 
-  function applyDatePreset(preset: "this-month" | "last-30" | "all") {
-    setDatePreset(preset);
+  // Date preset logic removed
 
-    if (preset === "all") {
-      setFromDate("");
-      setToDate("");
-      return;
-    }
-
-    if (preset === "last-30") {
-      const end = new Date();
-      const start = new Date();
-      start.setDate(end.getDate() - 29);
-      setFromDate(toDateInputValue(start));
-      setToDate(toDateInputValue(end));
-      return;
-    }
-
-    setFromDate(toDateInputValue(startOfCurrentMonth()));
-    setToDate(toDateInputValue(endOfCurrentMonth()));
-  }
-
-  const dateFilteredVendors = useMemo(() => {
-    return vendors.filter((vendor) => {
-      const created = new Date(vendor.createdAt);
-      created.setHours(0, 0, 0, 0);
-
-      if (fromDate) {
-        const start = new Date(fromDate);
-        start.setHours(0, 0, 0, 0);
-        if (created < start) return false;
-      }
-
-      if (toDate) {
-        const end = new Date(toDate);
-        end.setHours(0, 0, 0, 0);
-        if (created > end) return false;
-      }
-
-      return true;
-    });
-  }, [vendors, fromDate, toDate]);
+  // Always show all vendors (no date filtering)
+  const dateFilteredVendors = vendors;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -151,81 +105,12 @@ export function VendorsView({ vendors }: { vendors: Vendor[] }) {
         </div>
       </section>
 
-      <section>
-        <Card className="border border-slate-200/70 bg-white/90 p-4 sm:p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Created Date Range
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant={datePreset === "this-month" ? "default" : "outline"}
-                  className={
-                    datePreset === "this-month"
-                      ? "bg-slate-900 hover:bg-slate-800"
-                      : "border-slate-300"
-                  }
-                  onClick={() => applyDatePreset("this-month")}
-                >
-                  This Month
-                </Button>
-                <Button
-                  size="sm"
-                  variant={datePreset === "last-30" ? "default" : "outline"}
-                  className={
-                    datePreset === "last-30"
-                      ? "bg-slate-900 hover:bg-slate-800"
-                      : "border-slate-300"
-                  }
-                  onClick={() => applyDatePreset("last-30")}
-                >
-                  Last 30 Days
-                </Button>
-                <Button
-                  size="sm"
-                  variant={datePreset === "all" ? "default" : "outline"}
-                  className={
-                    datePreset === "all"
-                      ? "bg-slate-900 hover:bg-slate-800"
-                      : "border-slate-300"
-                  }
-                  onClick={() => applyDatePreset("all")}
-                >
-                  All Time
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <Input
-                type="date"
-                value={fromDate}
-                onChange={(event) => {
-                  setDatePreset("custom");
-                  setFromDate(event.target.value);
-                }}
-                className="h-10 rounded-xl border-slate-200 bg-white"
-              />
-              <Input
-                type="date"
-                value={toDate}
-                onChange={(event) => {
-                  setDatePreset("custom");
-                  setToDate(event.target.value);
-                }}
-                className="h-10 rounded-xl border-slate-200 bg-white"
-              />
-            </div>
-          </div>
-        </Card>
-      </section>
+      {/* Date range filter removed: always show all vendors */}
 
       <Card className="overflow-hidden border border-slate-200/70 bg-white/90 p-0">
         <div className="hidden md:block">
           <div className="grid grid-cols-[90px_minmax(0,1.2fr)_minmax(0,1fr)_110px_130px_170px] border-b border-slate-200 bg-slate-50/80 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            <div>ID</div>
+            <div>Serial #</div>
             <div>Vendor</div>
             <div>Contact</div>
             <div>Purchases</div>
@@ -233,13 +118,13 @@ export function VendorsView({ vendors }: { vendors: Vendor[] }) {
             <div>Actions</div>
           </div>
           <div className="divide-y divide-slate-200">
-            {filtered.map((vendor) => (
+            {filtered.map((vendor, idx) => (
               <div
                 key={vendor.id}
                 className="grid grid-cols-[90px_minmax(0,1.2fr)_minmax(0,1fr)_110px_130px_170px] items-center gap-4 px-6 py-4 hover:bg-slate-50/80"
               >
                 <div className="text-sm font-semibold text-slate-700">
-                  #{vendor.id}
+                  {idx + 1}
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
@@ -280,13 +165,16 @@ export function VendorsView({ vendors }: { vendors: Vendor[] }) {
         </div>
 
         <div className="grid gap-4 p-4 md:hidden">
-          {filtered.map((vendor) => (
+          {filtered.map((vendor, idx) => (
             <div
               key={vendor.id}
               className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Serial {idx + 1}
+                  </p>
                   <p className="text-base font-semibold text-slate-900">
                     {vendor.name}
                   </p>

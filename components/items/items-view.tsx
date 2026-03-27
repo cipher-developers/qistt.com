@@ -117,69 +117,21 @@ export function ItemsView({
   categories,
 }: ItemsViewProps) {
   const [query, setQuery] = useState("");
-  const [datePreset, setDatePreset] = useState<
-    "this-month" | "last-30" | "all" | "custom"
-  >("this-month");
-  const [fromDate, setFromDate] = useState<string>(
-    toDateInputValue(startOfCurrentMonth()),
-  );
-  const [toDate, setToDate] = useState<string>(
-    toDateInputValue(endOfCurrentMonth()),
-  );
+  // Date filtering removed: always show all items
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ItemRecord | null>(null);
   const [viewingItemId, setViewingItemId] = useState<number | null>(null);
 
-  function applyDatePreset(preset: "this-month" | "last-30" | "all") {
-    setDatePreset(preset);
+  // Date preset logic removed
 
-    if (preset === "all") {
-      setFromDate("");
-      setToDate("");
-      return;
-    }
-
-    if (preset === "last-30") {
-      const end = new Date();
-      const start = new Date();
-      start.setDate(end.getDate() - 29);
-      setFromDate(toDateInputValue(start));
-      setToDate(toDateInputValue(end));
-      return;
-    }
-
-    setFromDate(toDateInputValue(startOfCurrentMonth()));
-    setToDate(toDateInputValue(endOfCurrentMonth()));
-  }
-
-  const dateFilteredItems = useMemo(() => {
-    return items.filter((item) => {
-      const created = new Date(item.createdAt);
-      created.setHours(0, 0, 0, 0);
-
-      if (fromDate) {
-        const start = new Date(fromDate);
-        start.setHours(0, 0, 0, 0);
-        if (created < start) return false;
-      }
-
-      if (toDate) {
-        const end = new Date(toDate);
-        end.setHours(0, 0, 0, 0);
-        if (created > end) return false;
-      }
-
-      return true;
-    });
-  }, [items, fromDate, toDate]);
+  // Always show all items (no date filtering)
+  const dateFilteredItems = items;
 
   const filteredItems = useMemo(() => {
     const value = query.trim().toLowerCase();
-
     if (!value) {
       return dateFilteredItems;
     }
-
     return dateFilteredItems.filter((item) =>
       [item.name, item.model, item.description, item.sku, item.category?.name]
         .filter(Boolean)
@@ -389,76 +341,7 @@ export function ItemsView({
         </div>
       </section>
 
-      <section>
-        <Card className="border border-slate-200/70 bg-white/90 p-4 sm:p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Created Date Range
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant={datePreset === "this-month" ? "default" : "outline"}
-                  className={
-                    datePreset === "this-month"
-                      ? "bg-slate-900 hover:bg-slate-800"
-                      : "border-slate-300"
-                  }
-                  onClick={() => applyDatePreset("this-month")}
-                >
-                  This Month
-                </Button>
-                <Button
-                  size="sm"
-                  variant={datePreset === "last-30" ? "default" : "outline"}
-                  className={
-                    datePreset === "last-30"
-                      ? "bg-slate-900 hover:bg-slate-800"
-                      : "border-slate-300"
-                  }
-                  onClick={() => applyDatePreset("last-30")}
-                >
-                  Last 30 Days
-                </Button>
-                <Button
-                  size="sm"
-                  variant={datePreset === "all" ? "default" : "outline"}
-                  className={
-                    datePreset === "all"
-                      ? "bg-slate-900 hover:bg-slate-800"
-                      : "border-slate-300"
-                  }
-                  onClick={() => applyDatePreset("all")}
-                >
-                  All Time
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <Input
-                type="date"
-                value={fromDate}
-                onChange={(event) => {
-                  setDatePreset("custom");
-                  setFromDate(event.target.value);
-                }}
-                className="h-10 rounded-xl border-slate-200 bg-white"
-              />
-              <Input
-                type="date"
-                value={toDate}
-                onChange={(event) => {
-                  setDatePreset("custom");
-                  setToDate(event.target.value);
-                }}
-                className="h-10 rounded-xl border-slate-200 bg-white"
-              />
-            </div>
-          </div>
-        </Card>
-      </section>
+      {/* Date range filter removed: always show all items */}
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="border border-slate-200/70 bg-white/90 p-5">
@@ -569,7 +452,7 @@ export function ItemsView({
           <Card className="overflow-hidden border border-slate-200/70 bg-white/90 p-0">
             <div className="hidden md:block">
               <div className="grid grid-cols-[90px_minmax(0,1.1fr)_180px_120px_120px_110px_130px_170px] border-b border-slate-200 bg-slate-50/80 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <div>ID</div>
+                <div>Serial</div>
                 <div>Item</div>
                 <div>Category</div>
                 <div>Stock</div>
@@ -578,7 +461,7 @@ export function ItemsView({
                 <div>Actions</div>
               </div>
               <div className="divide-y divide-slate-200">
-                {filteredItems.map((item) =>
+                {filteredItems.map((item, idx) =>
                   (() => {
                     const availableQty = item.purchases.reduce(
                       (sum, p) => sum + (p.quantity - p.consumedQty),
@@ -590,7 +473,7 @@ export function ItemsView({
                         className="grid grid-cols-[90px_minmax(0,1.2fr)_180px_120px_110px_130px_170px] items-center gap-4 px-6 py-4 transition-colors hover:bg-slate-50/80"
                       >
                         <div className="text-sm font-semibold text-slate-700">
-                          #{item.id}
+                          {idx + 1}
                         </div>
                         <div className="flex items-start gap-2">
                           <div className="min-w-0 flex-1">
@@ -652,7 +535,7 @@ export function ItemsView({
             </div>
 
             <div className="grid gap-4 p-4 md:hidden">
-              {filteredItems.map((item) => (
+              {filteredItems.map((item, idx) => (
                 <div
                   key={item.id}
                   className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
@@ -660,7 +543,7 @@ export function ItemsView({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        ID #{item.id}
+                        Serial {idx + 1}
                       </p>
                       <div className="mt-1 flex items-start gap-2">
                         <div className="min-w-0 flex-1">

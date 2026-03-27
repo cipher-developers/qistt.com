@@ -74,11 +74,6 @@ export function CustomerForm({
   const [referenceId, setReferenceId] = useState(
     customer?.referenceId || "none",
   );
-  const [createdAt, setCreatedAt] = useState(
-    customer?.createdAt
-      ? toDateInputValue(new Date(customer.createdAt))
-      : toDateInputValue(new Date()),
-  );
   const [formData, setFormData] = useState({
     name: customer?.name || "",
     email: customer?.email || "",
@@ -89,11 +84,6 @@ export function CustomerForm({
 
   useEffect(() => {
     setReferenceId(customer?.referenceId || "none");
-    setCreatedAt(
-      customer?.createdAt
-        ? toDateInputValue(new Date(customer.createdAt))
-        : toDateInputValue(new Date()),
-    );
     setFormData({
       name: customer?.name || "",
       email: customer?.email || "",
@@ -119,7 +109,6 @@ export function CustomerForm({
         body: JSON.stringify({
           ...formData,
           referenceId: referenceId === "none" ? null : referenceId,
-          createdAt,
           tenantId,
         }),
       });
@@ -218,21 +207,7 @@ export function CustomerForm({
           />
         </div>
       </div>
-      <div>
-        <Label htmlFor="createdAt" className="text-slate-700 font-medium">
-          Created Date
-        </Label>
-        <Input
-          id="createdAt"
-          type="date"
-          value={createdAt}
-          onChange={(e) => setCreatedAt(e.target.value)}
-          className="mt-1 h-11 rounded-xl border-slate-200"
-        />
-        <p className="mt-1 text-xs text-slate-500">
-          Default is today. Set a past date when entering historical records.
-        </p>
-      </div>
+
       <div>
         <Label htmlFor="reference" className="font-medium text-slate-700">
           Reference
