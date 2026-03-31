@@ -273,7 +273,16 @@ export function OnboardingForm({
     email: "",
     cnic: "",
     address: "",
+    referenceName: "",
+    referenceId: "",
   });
+
+  const [referenceMode, setReferenceMode] = useState<"select" | "create">(
+    "select",
+  );
+  const [referencesState, setReferencesState] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
 
   const [vendorCreate, setVendorCreate] = useState({
     name: "",
@@ -386,11 +395,33 @@ export function OnboardingForm({
 
     setActionLoading("customer");
     try {
+      let referenceId = customerCreate.referenceId;
+      // If creating a new reference
+      if (referenceMode === "create" && customerCreate.referenceName.trim()) {
+        const refRes = await fetch("/api/references", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: customerCreate.referenceName }),
+        });
+        const refData = await refRes.json();
+        if (!refRes.ok) {
+          setError(refData?.error || "Failed to create reference.");
+          setActionLoading(null);
+          return;
+        }
+        referenceId = refData.id;
+        setReferencesState((current) => [
+          { id: refData.id, name: refData.name },
+          ...current,
+        ]);
+      }
+
       const response = await fetch("/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...customerCreate,
+          referenceId: referenceId || undefined,
           tenantId,
         }),
       });
@@ -861,6 +892,62 @@ export function OnboardingForm({
                           }))
                         }
                       />
+
+                      {/* Reference create/select UI */}
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+                        <div className="mb-2 flex items-center justify-between">
+                          <Label className="text-xs uppercase tracking-wide text-slate-500">
+                            Reference
+                          </Label>
+                          <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 text-xs">
+                            <button
+                              type="button"
+                              className={`rounded-md px-2 py-1 ${referenceMode === "select" ? "bg-slate-900 text-white" : "text-slate-600"}`}
+                              onClick={() => setReferenceMode("select")}
+                            >
+                              Select
+                            </button>
+                            <button
+                              type="button"
+                              className={`rounded-md px-2 py-1 ${referenceMode === "create" ? "bg-slate-900 text-white" : "text-slate-600"}`}
+                              onClick={() => setReferenceMode("create")}
+                            >
+                              Create
+                            </button>
+                          </div>
+                        </div>
+                        {referenceMode === "select" ? (
+                          <select
+                            className="h-10 w-full rounded-lg border-slate-200 bg-white text-sm"
+                            value={customerCreate.referenceId}
+                            onChange={(e) =>
+                              setCustomerCreate((current) => ({
+                                ...current,
+                                referenceId: e.target.value,
+                              }))
+                            }
+                          >
+                            <option value="">No reference</option>
+                            {referencesState.map((ref) => (
+                              <option key={ref.id} value={ref.id}>
+                                {ref.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <Input
+                            placeholder="New reference name"
+                            value={customerCreate.referenceName}
+                            onChange={(event) =>
+                              setCustomerCreate((current) => ({
+                                ...current,
+                                referenceName: event.target.value,
+                              }))
+                            }
+                            className="h-10 rounded-lg border-slate-200 bg-white"
+                          />
+                        )}
+                      </div>
 
                       <Textarea
                         rows={3}
