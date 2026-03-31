@@ -49,7 +49,7 @@ export function TransactionForm({
   const [formData, setFormData] = useState({
     installmentId: initialInstallmentId || "",
     amount: "",
-    description: "",
+    description: "Installment payment",
   });
 
   useEffect(() => {

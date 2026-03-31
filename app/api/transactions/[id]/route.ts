@@ -48,9 +48,11 @@ export async function GET(
         plan: {
           select: {
             id: true,
+            account_number: true,
             months: true,
             monthlyAmount: true,
             sellingPrice: true,
+            advancePaid: true,
             status: true,
             item: {
               select: {
@@ -58,6 +60,28 @@ export async function GET(
                 name: true,
                 model: true,
                 sku: true,
+                category: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+            installments: {
+              select: {
+                id: true,
+                installmentNumber: true,
+                amount: true,
+                paidAmount: true,
+                status: true,
+                dueDate: true,
+              },
+            },
+            transactions: {
+              select: {
+                id: true,
+                amount: true,
               },
             },
           },

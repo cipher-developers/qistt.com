@@ -66,6 +66,7 @@ export async function GET(
                     orderBy: { createdAt: "desc" },
                     select: {
                         id: true,
+                        account_number: true,
                         status: true,
                         sellingPrice: true,
                         advancePaid: true,

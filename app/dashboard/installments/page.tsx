@@ -52,6 +52,7 @@ export default async function InstallmentsPage({
           sellingPrice: true,
           advancePaid: true,
           monthlyAmount: true,
+          account_number: true,
           months: true,
           status: true,
           transactions: {

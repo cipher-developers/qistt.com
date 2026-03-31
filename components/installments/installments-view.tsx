@@ -198,9 +198,9 @@ export function InstallmentsView({
     const seen = new Set<number>();
     const result: number[] = [];
     for (const i of installments) {
-      if (!seen.has(i.plan.id)) {
-        seen.add(i.plan.id);
-        result.push(i.plan.id);
+      if (!seen.has(i.plan.account_number)) {
+        seen.add(i.plan.account_number);
+        result.push(i.plan.account_number);
       }
     }
     return result.sort((a, b) => a - b);
@@ -273,7 +273,7 @@ export function InstallmentsView({
     if (filterItem !== null)
       result = result.filter((i) => i.plan.item.id === filterItem);
     if (filterPlan !== null)
-      result = result.filter((i) => i.plan.id === filterPlan);
+      result = result.filter((i) => i.plan.account_number === filterPlan);
     if (filterStatus !== null)
       result = result.filter((i) => i.status === filterStatus);
 
@@ -905,9 +905,7 @@ export function InstallmentsView({
                         <SortIcon forKey="plan" />
                       </button>
                     </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Account #
-                    </th>
+
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       <button
                         type="button"
@@ -997,20 +995,20 @@ export function InstallmentsView({
                     return (
                       <tr key={installment.id} className="hover:bg-slate-50/70">
                         <td className="px-5 py-3.5">
-                          <td className="px-5 py-3.5">
-                            <span className="text-sm text-slate-700">
+                          {/* <span className="text-sm text-slate-700">
                               {installment.plan.account_number ?? "-"}
-                            </span>
-                          </td>
+                            </span> */}
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-semibold text-slate-700">
-                              #{installment.plan.id}
+                              {installment.plan.account_number || "--"}
                             </span>
                             <EntityViewButton
-                              label={`plan ${installment.plan.id}`}
+                              label={`plan ${installment.plan.account_number}`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setViewingPlanId(installment.plan.id);
+                                setViewingPlanId(
+                                  installment.plan.account_number,
+                                );
                               }}
                             />
                           </div>
@@ -1134,14 +1132,14 @@ export function InstallmentsView({
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Plan #{installment.plan.id} • Installment #
-                            {installment.installmentNumber}
+                            Plan #{installment.plan.account_number} •
+                            Installment #{installment.installmentNumber}
                           </p>
                           <EntityViewButton
-                            label={`plan ${installment.plan.id}`}
+                            label={`plan ${installment.plan.account_number}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setViewingPlanId(installment.plan.id);
+                              setViewingPlanId(installment.plan.account_number);
                             }}
                           />
                         </div>

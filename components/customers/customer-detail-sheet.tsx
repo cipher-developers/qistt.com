@@ -38,6 +38,7 @@ type CustomerDetail = {
   };
   installmentPlans: {
     id: number;
+    account_number?: number | null;
     status: string;
     sellingPrice: number;
     advancePaid: number;
@@ -213,18 +214,7 @@ export function CustomerDetailSheet({
           ) : detail && portfolio ? (
             <div className="space-y-4">
               <Card className="border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Customer ID
-                    </p>
-                    <p className="mt-2 text-xl font-semibold text-slate-900">
-                      #{detail.id}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Active plans: {portfolio.activePlans}
-                    </p>
-                  </div>
+                <div className="grid gap-3 sm:grid-cols-1">
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Outstanding
@@ -391,7 +381,7 @@ export function CustomerDetailSheet({
                             </span>
                           </div>
                           <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
-                            <p>Plan #{plan.id}</p>
+                            <p>Account # {plan.account_number ?? "-"}</p>
                             <p>Total {formatCurrency(plan.sellingPrice)}</p>
                             <p>Paid {formatCurrency(paid)}</p>
                           </div>
@@ -425,7 +415,7 @@ export function CustomerDetailSheet({
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-slate-800">
                             {transaction.description ||
-                              `Plan #${transaction.planId}`}
+                              `Account${transaction.planId}`}
                           </p>
                           <p className="mt-1 text-xs text-slate-500">
                             {formatDate(transaction.transactionDate)}

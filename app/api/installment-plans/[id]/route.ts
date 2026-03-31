@@ -20,7 +20,7 @@ export async function GET(
         }
 
         const plan = await prisma.installmentPlan.findFirst({
-            where: { id: planId, tenantId: tenant.id },
+            where: { account_number: planId, tenantId: tenant.id },
             select: {
                 id: true,
                 sellingPrice: true,

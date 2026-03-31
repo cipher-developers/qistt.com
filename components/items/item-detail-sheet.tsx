@@ -212,18 +212,7 @@ export function ItemDetailSheet({
           ) : detail && portfolio ? (
             <div className="space-y-4">
               <Card className="border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Item ID
-                    </p>
-                    <p className="mt-2 text-xl font-semibold text-slate-900">
-                      #{detail.id}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {detail.model || "No model"}
-                    </p>
-                  </div>
+                <div className="grid gap-3 sm:grid-cols-1 ">
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Active Plans
@@ -246,6 +235,15 @@ export function ItemDetailSheet({
                     Item Profile
                   </div>
                   <div className="mt-4 space-y-3 text-sm">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                      <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        <FolderKanban size={12} />
+                        Model
+                      </p>
+                      <p className="mt-1 text-slate-800">
+                        {detail.model || "No Model"}
+                      </p>
+                    </div>
                     <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
                       <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                         <FolderKanban size={12} />
@@ -382,7 +380,7 @@ export function ItemDetailSheet({
                             </span>
                           </div>
                           <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
-                            <p>Plan #{plan.id}</p>
+                            <p>Plan #{plan.account_number || plan.id}</p>
                             <p>Total {formatCurrency(plan.sellingPrice)}</p>
                             <p>Paid {formatCurrency(paid)}</p>
                           </div>

@@ -35,6 +35,9 @@ model Tenant {
   status          String   @default("active")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  companyAddress  String?  // Company address (optional)
+  companyEmail    String?  // Company email (optional)
+  companyPhone    String?  // Company phone number (optional)
   users           User[]
   customers       Customer[]
   vendors         Vendor[]

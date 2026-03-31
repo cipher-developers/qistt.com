@@ -14,6 +14,9 @@ interface TenantSettingsFormProps {
     subdomain: string;
     ownerEmail: string;
     logo: string | null;
+    companyAddress?: string | null;
+    companyEmail?: string | null;
+    companyPhone?: string | null;
   };
 }
 
@@ -26,6 +29,9 @@ export function TenantSettingsForm({ tenant }: TenantSettingsFormProps) {
     name: tenant.name,
     ownerEmail: tenant.ownerEmail,
     logo: tenant.logo ?? "",
+    companyAddress: tenant.companyAddress ?? "",
+    companyEmail: tenant.companyEmail ?? "",
+    companyPhone: tenant.companyPhone ?? "",
   });
 
   async function handleSubmit(e: React.FormEvent) {
@@ -53,6 +59,9 @@ export function TenantSettingsForm({ tenant }: TenantSettingsFormProps) {
           name: formData.name.trim(),
           ownerEmail: formData.ownerEmail.trim(),
           logo: formData.logo.trim(),
+          companyAddress: formData.companyAddress.trim(),
+          companyEmail: formData.companyEmail.trim(),
+          companyPhone: formData.companyPhone.trim(),
         }),
       });
 
@@ -141,6 +150,55 @@ export function TenantSettingsForm({ tenant }: TenantSettingsFormProps) {
           <p className="mt-1.5 text-xs text-slate-500">
             Leave blank to use the default workspace monogram.
           </p>
+        </div>
+
+        <div>
+          <Label
+            htmlFor="companyAddress"
+            className="text-slate-700 font-medium"
+          >
+            Company Address
+          </Label>
+          <Input
+            id="companyAddress"
+            value={formData.companyAddress}
+            onChange={(e) =>
+              setFormData({ ...formData, companyAddress: e.target.value })
+            }
+            placeholder="Enter company address"
+            className="mt-1.5"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="companyEmail" className="text-slate-700 font-medium">
+            Company Email
+          </Label>
+          <Input
+            id="companyEmail"
+            type="email"
+            value={formData.companyEmail}
+            onChange={(e) =>
+              setFormData({ ...formData, companyEmail: e.target.value })
+            }
+            placeholder="company@email.com"
+            className="mt-1.5"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="companyPhone" className="text-slate-700 font-medium">
+            Company Phone
+          </Label>
+          <Input
+            id="companyPhone"
+            value={formData.companyPhone}
+            onChange={(e) =>
+              setFormData({ ...formData, companyPhone: e.target.value })
+            }
+            placeholder="e.g. +1 555-123-4567"
+            className="mt-1.5"
+          />
         </div>
 
         <div>

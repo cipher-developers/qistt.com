@@ -24,6 +24,7 @@ import { CustomerDetailSheet } from "@/components/customers/customer-detail-shee
 import { ItemDetailSheet } from "@/components/items/item-detail-sheet";
 import { EntityViewButton } from "@/components/shared/entity-view-button";
 import { TransactionDetailSheet } from "@/components/transactions/transaction-detail-sheet";
+import { PlanDetailSheet } from "@/components/plans/plan-detail-sheet";
 import { formatCurrency } from "@/lib/utils";
 
 interface Transaction {
@@ -113,6 +114,7 @@ export function TransactionsView({
   const [viewingTransactionId, setViewingTransactionId] = useState<
     number | null
   >(initialTransactionId ?? null);
+  const [viewingPlanId, setViewingPlanId] = useState<number | null>(null);
 
   useEffect(() => {
     if (justCreated || initialTransactionId) {
@@ -741,7 +743,19 @@ export function TransactionsView({
                               </div>
                             </td>
                             <td className="px-5 py-3.5 text-sm text-slate-700">
-                              {t.plan.account_number ?? "-"}
+                              <div className="flex items-center gap-1.5">
+                                <span>{t.plan.account_number ?? "-"}</span>
+                                {t.plan.account_number && (
+                                  <EntityViewButton
+                                    label={`plan ${t.plan.account_number}`}
+                                    className="shrink-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setViewingPlanId(t.plan.account_number);
+                                    }}
+                                  />
+                                )}
+                              </div>
                             </td>
                             <td className="px-5 py-3.5 text-sm text-slate-600">
                               <div className="min-w-0">
@@ -902,7 +916,19 @@ export function TransactionsView({
                           </div>
                         </td>
                         <td className="px-5 py-3.5 text-sm text-slate-700">
-                          {t.plan.account_number ?? "-"}
+                          <div className="flex items-center gap-1.5">
+                            <span>{t.plan.account_number ?? "-"}</span>
+                            {t.plan.account_number && (
+                              <EntityViewButton
+                                label={`plan ${t.plan.account_number}`}
+                                className="shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setViewingPlanId(t.plan.account_number);
+                                }}
+                              />
+                            )}
+                          </div>
                         </td>
                         <td className="px-5 py-3.5 text-sm text-slate-600">
                           <div className="min-w-0">
@@ -1082,6 +1108,13 @@ export function TransactionsView({
           if (!open) {
             setViewingTransactionId(null);
           }
+        }}
+      />
+      <PlanDetailSheet
+        open={Boolean(viewingPlanId)}
+        planId={viewingPlanId}
+        onOpenChange={(open) => {
+          if (!open) setViewingPlanId(null);
         }}
       />
     </div>

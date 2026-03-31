@@ -557,19 +557,38 @@ export function PlansView({
 
   async function downloadPlanCard(plan: PlanRecord) {
     setDownloadingPlanId(plan.id);
-
     try {
       const response = await fetch(`/api/installment-plans/${plan.id}/card`);
       if (!response.ok) {
         throw new Error("Failed to download plan card");
       }
-
       const blob = await response.blob();
       const fallbackName = `${plan.customer.name || `plan-${plan.id}`}-plan-card.xlsx`;
       const contentDisposition = response.headers.get("content-disposition");
       const fileNameMatch = contentDisposition?.match(/filename="?([^\"]+)"?/i);
       const fileName = fileNameMatch?.[1] || fallbackName;
+      downloadBlob(blob, fileName);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setDownloadingPlanId(null);
+    }
+  }
 
+  async function downloadAcceptanceForm(plan: PlanRecord) {
+    setDownloadingPlanId(plan.id);
+    try {
+      const response = await fetch(
+        `/api/installment-plans/${plan.id}/acceptance-form`,
+      );
+      if (!response.ok) {
+        throw new Error("Failed to download acceptance form");
+      }
+      const blob = await response.blob();
+      const fallbackName = `${plan.customer.name || `plan-${plan.id}`}-acceptance-form.html`;
+      const contentDisposition = response.headers.get("content-disposition");
+      const fileNameMatch = contentDisposition?.match(/filename="?([^\"]+)"?/i);
+      const fileName = fileNameMatch?.[1] || fallbackName;
       downloadBlob(blob, fileName);
     } catch (error) {
       console.error(error);
@@ -799,7 +818,7 @@ export function PlansView({
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Account #
+                      Plan #
                     </th>
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Customer
@@ -847,7 +866,7 @@ export function PlansView({
                                 label={`plan ${plan.account_number}`}
                                 onClick={(event) => {
                                   event.stopPropagation();
-                                  setViewingPlanId(plan.id);
+                                  setViewingPlanId(plan.account_number);
                                 }}
                               />
                             </div>
@@ -937,6 +956,18 @@ export function PlansView({
                                 {downloadingPlanId === plan.id
                                   ? "Generating..."
                                   : "Card"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-slate-300"
+                                onClick={() => downloadAcceptanceForm(plan)}
+                                disabled={downloadingPlanId === plan.id}
+                              >
+                                <FileDown size={14} />
+                                {downloadingPlanId === plan.id
+                                  ? "Generating..."
+                                  : "Acceptance"}
                               </Button>
                               <Button
                                 size="sm"
@@ -1075,7 +1106,7 @@ export function PlansView({
                             label={`plan ${plan.account_number}`}
                             onClick={(event) => {
                               event.stopPropagation();
-                              setViewingPlanId(plan.id);
+                              setViewingPlanId(plan.account_number);
                             }}
                           />
                         </div>

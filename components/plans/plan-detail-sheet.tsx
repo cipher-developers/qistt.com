@@ -169,7 +169,7 @@ export function PlanDetailSheet({
           </div>
           <div className="space-y-2">
             <SheetTitle className="text-xl text-slate-900">
-              Plan #{planId}
+              Plan # {planId}
               {detail && (
                 <span
                   className={`ml-3 inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getPlanStatusTone(detail.status)}`}

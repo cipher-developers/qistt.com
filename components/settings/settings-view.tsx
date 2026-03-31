@@ -7,6 +7,7 @@ import {
   ReceiptText,
   ShieldCheck,
   Users,
+  Mail,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { TenantSettingsForm } from "@/components/settings/tenant-settings-form";
@@ -40,6 +41,9 @@ export function SettingsView({
     logo: string | null;
     status: string;
     createdAt: string | Date;
+    companyAddress?: string | null;
+    companyEmail?: string | null;
+    companyPhone?: string | null;
   };
   metrics: {
     customers: number;
@@ -175,7 +179,7 @@ export function SettingsView({
               </p>
             </div>
             <div className="space-y-4 p-5">
-              <div className="rounded-2xl border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(148,163,184,0.16),_transparent_45%),linear-gradient(135deg,_#0f172a,_#1e293b)] p-5 text-white">
+              <div className="rounded-2xl border border-slate-200 bg-[radial-gradient(circle_at_top_left,rgba(148,163,184,0.16),transparent_45%),linear-gradient(135deg,#0f172a,#1e293b)] p-5 text-white">
                 <div className="flex items-center gap-4">
                   {tenant.logo ? (
                     <img
@@ -223,6 +227,39 @@ export function SettingsView({
                     </p>
                   </div>
                 </div>
+                {tenant.companyAddress && (
+                  <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <span className="mt-0.5 text-slate-400">🏢</span>
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        Company Address
+                      </p>
+                      <p className="text-slate-500">{tenant.companyAddress}</p>
+                    </div>
+                  </div>
+                )}
+                {tenant.companyEmail && (
+                  <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <Mail size={16} className="mt-0.5 text-slate-400" />
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        Company Email
+                      </p>
+                      <p className="text-slate-500">{tenant.companyEmail}</p>
+                    </div>
+                  </div>
+                )}
+                {tenant.companyPhone && (
+                  <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <span className="mt-0.5 text-slate-400">📞</span>
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        Company Phone
+                      </p>
+                      <p className="text-slate-500">{tenant.companyPhone}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </Card>
