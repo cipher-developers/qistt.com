@@ -154,7 +154,7 @@ export async function GET(
                 1,
             );
 
-        worksheet.getCell("B4").value = plan.customer.id;
+        worksheet.getCell("B4").value = plan.account_number || "";
         worksheet.getCell("E4").value = plan.item.name;
         worksheet.getCell("E6").value = plan.customer.cnic;
         worksheet.getCell("H4").value = formatDate(plan.startDate);
@@ -242,8 +242,8 @@ export async function GET(
 
         const outputBuffer = await workbook.xlsx.writeBuffer();
         const safeCustomerName =
-            sanitizeForFilename(plan.customer.name) || `customer-${plan.id}`;
-        const fileName = `${safeCustomerName}-plan-${plan.id}-card.xlsx`;
+            sanitizeForFilename(plan.customer.name) || `customer-${plan.account_number}`;
+        const fileName = `${safeCustomerName}-plan-${plan.account_number}-card.xlsx`;
 
         return new NextResponse(outputBuffer, {
             status: 200,
