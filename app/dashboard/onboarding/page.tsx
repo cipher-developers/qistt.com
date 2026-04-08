@@ -12,10 +12,16 @@ export const metadata = {
 export default async function OnboardingPage() {
   const tenant = await getCurrentTenant();
 
-  const [customers, vendors, categories, items, purchases] = await Promise.all([
+  const [customers, references, vendors, categories, items, purchases] =
+    await Promise.all([
     prisma.customer.findMany({
       where: { tenantId: tenant?.id },
       select: { id: true, name: true, phone: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.reference.findMany({
+      where: { tenantId: tenant?.id },
+      select: { id: true, name: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.vendor.findMany({
@@ -62,7 +68,7 @@ export default async function OnboardingPage() {
       },
       orderBy: { purchasedAt: "desc" },
     }),
-  ]);
+    ]);
 
   const availablePurchases = purchases.filter(
     (row) => row.quantity - row.consumedQty > 0,
@@ -97,6 +103,7 @@ export default async function OnboardingPage() {
         <OnboardingForm
           tenantId={tenant?.id}
           customers={customers}
+          references={references}
           vendors={vendors}
           categories={categories}
           items={items}

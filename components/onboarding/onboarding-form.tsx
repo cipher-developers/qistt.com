@@ -109,6 +109,7 @@ function formatCnicInput(value: string) {
 type OnboardingFormProps = {
   tenantId?: string;
   customers: Customer[];
+  references: Array<{ id: string; name: string }>;
   vendors: Vendor[];
   categories: Category[];
   items: Item[];
@@ -192,6 +193,7 @@ function SearchableSelect({
 export function OnboardingForm({
   tenantId,
   customers,
+  references,
   vendors,
   categories,
   items,
@@ -280,9 +282,8 @@ export function OnboardingForm({
   const [referenceMode, setReferenceMode] = useState<"select" | "create">(
     "select",
   );
-  const [referencesState, setReferencesState] = useState<
-    Array<{ id: string; name: string }>
-  >([]);
+  const [referencesState, setReferencesState] =
+    useState<Array<{ id: string; name: string }>>(references);
 
   const [vendorCreate, setVendorCreate] = useState({
     name: "",
