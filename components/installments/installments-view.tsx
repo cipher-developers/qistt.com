@@ -166,6 +166,9 @@ export function InstallmentsView({
   const [selectedInstallmentId, setSelectedInstallmentId] = useState<
     string | null
   >(initialInstallmentId ?? null);
+  const [editingTransactionId, setEditingTransactionId] = useState<
+    number | null
+  >(null);
   const [viewingCustomerId, setViewingCustomerId] = useState<number | null>(
     null,
   );
@@ -198,9 +201,14 @@ export function InstallmentsView({
     const seen = new Set<number>();
     const result: number[] = [];
     for (const i of installments) {
-      if (!seen.has(i.plan.account_number)) {
-        seen.add(i.plan.account_number);
-        result.push(i.plan.account_number);
+      const accountNumber = i.plan.account_number;
+      if (accountNumber == null) {
+        continue;
+      }
+
+      if (!seen.has(accountNumber)) {
+        seen.add(accountNumber);
+        result.push(accountNumber);
       }
     }
     return result.sort((a, b) => a - b);
@@ -988,6 +996,7 @@ export function InstallmentsView({
                       0,
                     );
                     const latestTransactionId = installment.transactions[0]?.id;
+                    const canEditPayment = Boolean(latestTransactionId);
                     const canViewInvoice =
                       installment.status !== "pending" &&
                       Boolean(latestTransactionId);
@@ -1006,9 +1015,11 @@ export function InstallmentsView({
                               label={`plan ${installment.plan.account_number}`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setViewingPlanId(
-                                  installment.plan.account_number,
-                                );
+                                if (installment.plan.account_number != null) {
+                                  setViewingPlanId(
+                                    installment.plan.account_number,
+                                  );
+                                }
                               }}
                             />
                           </div>
@@ -1099,12 +1110,25 @@ export function InstallmentsView({
                             <Button
                               size="sm"
                               className="bg-slate-900 hover:bg-slate-800"
-                              disabled={remaining <= 0}
-                              onClick={() =>
-                                setSelectedInstallmentId(installment.id)
-                              }
+                              disabled={remaining <= 0 && !canEditPayment}
+                              onClick={() => {
+                                if (remaining > 0) {
+                                  setEditingTransactionId(null);
+                                  setSelectedInstallmentId(installment.id);
+                                  return;
+                                }
+
+                                if (latestTransactionId) {
+                                  setEditingTransactionId(latestTransactionId);
+                                  setSelectedInstallmentId(installment.id);
+                                }
+                              }}
                             >
-                              {remaining > 0 ? "Record" : "Paid"}
+                              {remaining > 0
+                                ? "Record"
+                                : canEditPayment
+                                  ? "Edit Payment"
+                                  : "Paid"}
                             </Button>
                           </div>
                         </td>
@@ -1122,6 +1146,7 @@ export function InstallmentsView({
                   0,
                 );
                 const latestTransactionId = installment.transactions[0]?.id;
+                const canEditPayment = Boolean(latestTransactionId);
                 const canViewInvoice =
                   installment.status !== "pending" &&
                   Boolean(latestTransactionId);
@@ -1139,7 +1164,9 @@ export function InstallmentsView({
                             label={`plan ${installment.plan.account_number}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setViewingPlanId(installment.plan.account_number);
+                              if (installment.plan.account_number != null) {
+                                setViewingPlanId(installment.plan.account_number);
+                              }
                             }}
                           />
                         </div>
@@ -1199,12 +1226,25 @@ export function InstallmentsView({
                         <Button
                           size="sm"
                           className="bg-slate-900 hover:bg-slate-800"
-                          disabled={remaining <= 0}
-                          onClick={() =>
-                            setSelectedInstallmentId(installment.id)
-                          }
+                          disabled={remaining <= 0 && !canEditPayment}
+                          onClick={() => {
+                            if (remaining > 0) {
+                              setEditingTransactionId(null);
+                              setSelectedInstallmentId(installment.id);
+                              return;
+                            }
+
+                            if (latestTransactionId) {
+                              setEditingTransactionId(latestTransactionId);
+                              setSelectedInstallmentId(installment.id);
+                            }
+                          }}
                         >
-                          {remaining > 0 ? "Record" : "Paid"}
+                          {remaining > 0
+                            ? "Record"
+                            : canEditPayment
+                              ? "Edit Payment"
+                              : "Paid"}
                         </Button>
                       </div>
                     </div>
@@ -1276,14 +1316,21 @@ export function InstallmentsView({
         onOpenChange={(open) => {
           if (!open) {
             setSelectedInstallmentId(null);
+            setEditingTransactionId(null);
           }
         }}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Record Installment Transaction</DialogTitle>
+            <DialogTitle>
+              {editingTransactionId
+                ? "Edit Installment Transaction"
+                : "Record Installment Transaction"}
+            </DialogTitle>
             <DialogDescription>
-              Add a payment directly against this installment.
+              {editingTransactionId
+                ? "Update the same transaction record for this paid installment."
+                : "Add a payment directly against this installment."}
             </DialogDescription>
           </DialogHeader>
 
@@ -1291,14 +1338,22 @@ export function InstallmentsView({
             <TransactionForm
               installments={installments}
               initialInstallmentId={selectedInstallment.id}
+              transactionId={editingTransactionId || undefined}
+              mode={editingTransactionId ? "edit" : "create"}
               lockInstallment
-              submitLabel="Record Transaction"
+              submitLabel={
+                editingTransactionId ? "Save Changes" : "Record Transaction"
+              }
               onSuccess={(createdTransaction) => {
                 setSelectedInstallmentId(null);
+                setEditingTransactionId(null);
                 setViewingTransactionId(createdTransaction.id);
                 router.refresh();
               }}
-              onCancel={() => setSelectedInstallmentId(null)}
+              onCancel={() => {
+                setSelectedInstallmentId(null);
+                setEditingTransactionId(null);
+              }}
             />
           ) : null}
         </DialogContent>

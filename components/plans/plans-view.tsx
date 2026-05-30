@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -46,6 +46,7 @@ import { formatCurrency } from "@/lib/utils";
 type PlanRecord = {
   id: number;
   customerId: number;
+  account_number?: number | null;
   sellingPrice: number;
   advancePaid: number;
   monthlyAmount: number;
@@ -98,10 +99,112 @@ type GroupedPlan = {
   label: string;
   plans: PlanRecord[];
   totalRevenue: number;
+  advancePaid: number;
   generatedRevenue: number;
   pendingRevenue: number;
   progress: number;
 };
+
+type TableAlign = "left" | "right" | "center";
+
+type TableColumnDef = {
+  key: string;
+  label: string;
+  align?: TableAlign;
+  headerClassName?: string;
+  cellClassName?: string;
+};
+
+type PlanExportRow = {
+  planId: number;
+  customerId: number;
+  customer: string;
+  phone: string;
+  item: string;
+  purchaseId: number | string;
+  purchaseVendor: string;
+  purchaseUnitCost: number;
+  sellingPrice: number;
+  advancePaid: number;
+  generatedRevenue: number;
+  pendingRevenue: number;
+  grossProfitEstimate: number;
+  months: number;
+  monthlyAmount: number;
+  progress: string;
+  status: string;
+  createdDate: string;
+};
+
+const PLAN_TABLE_COLUMNS: TableColumnDef[] = [
+  { key: "plan", label: "Plan #", align: "left" },
+  { key: "customer", label: "Customer", align: "left" },
+  { key: "item", label: "Item", align: "left" },
+  { key: "total", label: "Total", align: "right" },
+  { key: "advancePaid", label: "Advance Paid", align: "right" },
+  { key: "paid", label: "Total Paid", align: "right" },
+  { key: "pending", label: "Pending", align: "right" },
+  { key: "created", label: "Created", align: "left" },
+  {
+    key: "progress",
+    label: "Progress",
+    align: "left",
+    headerClassName: "w-40",
+  },
+  { key: "actions", label: "Actions", align: "right" },
+];
+
+const GROUPED_PLAN_TABLE_COLUMNS: TableColumnDef[] = [
+  { key: "label", label: "Group", align: "left" },
+  { key: "plans", label: "Plans", align: "center" },
+  { key: "total", label: "Total", align: "right" },
+  { key: "advancePaid", label: "Advance Paid", align: "right" },
+  { key: "paid", label: "Paid", align: "right" },
+  { key: "pending", label: "Pending", align: "right" },
+  {
+    key: "progress",
+    label: "Progress",
+    align: "left",
+    headerClassName: "w-40",
+  },
+  { key: "expand", label: "Expand", align: "right" },
+];
+
+const PLAN_MOBILE_METRIC_COLUMNS: {
+  key: string;
+  label: string;
+  valueClassName: string;
+}[] = [
+  { key: "total", label: "Total", valueClassName: "text-slate-900" },
+  {
+    key: "advancePaid",
+    label: "Advance Paid",
+    valueClassName: "text-cyan-700",
+  },
+  { key: "paid", label: "Paid", valueClassName: "text-emerald-600" },
+  { key: "pending", label: "Pending", valueClassName: "text-rose-600" },
+];
+
+const EXPORT_COLUMN_DEFS: { key: keyof PlanExportRow; label: string }[] = [
+  { key: "planId", label: "Plan #" },
+  { key: "customerId", label: "Customer #" },
+  { key: "customer", label: "Customer" },
+  { key: "phone", label: "Phone" },
+  { key: "item", label: "Item" },
+  { key: "purchaseId", label: "Purchase #" },
+  { key: "purchaseVendor", label: "Vendor" },
+  { key: "purchaseUnitCost", label: "Unit Cost" },
+  { key: "sellingPrice", label: "Selling Price" },
+  { key: "advancePaid", label: "Advance Paid" },
+  { key: "generatedRevenue", label: "Collected" },
+  { key: "pendingRevenue", label: "Pending" },
+  { key: "grossProfitEstimate", label: "Gross Profit Est." },
+  { key: "months", label: "Months" },
+  { key: "monthlyAmount", label: "Monthly Amount" },
+  { key: "progress", label: "Progress" },
+  { key: "status", label: "Status" },
+  { key: "createdDate", label: "Created Date" },
+];
 
 function getPlanMetrics(plan: PlanRecord) {
   const generatedRevenue = plan.transactions.reduce(
@@ -175,6 +278,31 @@ function downloadBlob(blob: Blob, fileName: string) {
   URL.revokeObjectURL(url);
 }
 
+function tableAlignClass(
+  align: TableAlign | undefined,
+  type: "header" | "cell",
+) {
+  const padding = type === "header" ? "px-5 py-3" : "px-5 py-3.5";
+
+  if (align === "right") {
+    return `${padding} text-right`;
+  }
+
+  if (align === "center") {
+    return `${padding} text-center`;
+  }
+
+  return `${padding} text-left`;
+}
+
+function tableHeaderClassName(column: TableColumnDef) {
+  return `${tableAlignClass(column.align, "header")} text-xs font-semibold uppercase tracking-wider text-slate-500 ${column.headerClassName ?? ""}`;
+}
+
+function tableCellClassName(column: TableColumnDef, extraClassName = "") {
+  return `${tableAlignClass(column.align, "cell")} ${column.cellClassName ?? ""} ${extraClassName}`.trim();
+}
+
 export function PlansView({
   plans,
   tenantName,
@@ -199,6 +327,9 @@ export function PlansView({
   const [viewingPlanId, setViewingPlanId] = useState<number | null>(null);
   const [selectedInstallmentId, setSelectedInstallmentId] = useState<
     string | null
+  >(null);
+  const [editingTransactionId, setEditingTransactionId] = useState<
+    number | null
   >(null);
   const [viewingTransactionId, setViewingTransactionId] = useState<
     number | null
@@ -233,6 +364,11 @@ export function PlansView({
     [plans],
   );
 
+  const selectedInstallment = useMemo(
+    () => installmentOptions.find((i) => i.id === selectedInstallmentId),
+    [installmentOptions, selectedInstallmentId],
+  );
+
   const customers = useMemo(() => {
     const map = new Map<number, string>();
     plans.forEach((p) => map.set(p.customer.id, p.customer.name));
@@ -265,7 +401,8 @@ export function PlansView({
         plan.customer.name.toLowerCase().includes(q) ||
         plan.customer.phone.toLowerCase().includes(q) ||
         plan.item.name.toLowerCase().includes(q) ||
-        String(plan.id).includes(q);
+        String(plan.id).includes(q) ||
+        String(plan.account_number).includes(q);
 
       const matchesCustomer =
         customerFilter === "all" || String(plan.customer.id) === customerFilter;
@@ -305,6 +442,7 @@ export function PlansView({
           label,
           plans: [],
           totalRevenue: 0,
+          advancePaid: 0,
           generatedRevenue: 0,
           pendingRevenue: 0,
           progress: 0,
@@ -315,6 +453,7 @@ export function PlansView({
       const metrics = getPlanMetrics(plan);
       group.plans.push(plan);
       group.totalRevenue += metrics.totalRevenue;
+      group.advancePaid += plan.advancePaid;
       group.generatedRevenue += metrics.generatedRevenue;
       group.pendingRevenue += metrics.pendingRevenue;
     });
@@ -425,58 +564,18 @@ export function PlansView({
     setRevenueFilter("all");
     setCustomerFilter("all");
     setItemFilter("all");
-    applyDatePreset("this-month");
   }
 
   function exportToCsv() {
     if (exportRows.length === 0) return;
 
-    const headers = [
-      "Plan #",
-      "Customer #",
-      "Customer",
-      "Phone",
-      "Item",
-      "Purchase #",
-      "Vendor",
-      "Unit Cost",
-      "Selling Price",
-      "Advance Paid",
-      "Collected",
-      "Pending",
-      "Gross Profit Est.",
-      "Months",
-      "Monthly Amount",
-      "Progress",
-      "Status",
-      "Created Date",
-    ];
-
+    const headers = EXPORT_COLUMN_DEFS.map((column) => column.label);
     const lines = [
       headers.join(","),
       ...exportRows.map((row) =>
-        [
-          row.planId,
-          row.customerId,
-          row.customer,
-          row.phone,
-          row.item,
-          row.purchaseId,
-          row.purchaseVendor,
-          row.purchaseUnitCost,
-          row.sellingPrice,
-          row.advancePaid,
-          row.generatedRevenue,
-          row.pendingRevenue,
-          row.grossProfitEstimate,
-          row.months,
-          row.monthlyAmount,
-          row.progress,
-          row.status,
-          row.createdDate,
-        ]
-          .map(escapeCsv)
-          .join(","),
+        EXPORT_COLUMN_DEFS.map((column) => escapeCsv(row[column.key])).join(
+          ",",
+        ),
       ),
     ];
 
@@ -491,51 +590,17 @@ export function PlansView({
   function exportToExcel() {
     if (exportRows.length === 0) return;
 
-    const headerCells = [
-      "Plan #",
-      "Customer #",
-      "Customer",
-      "Phone",
-      "Item",
-      "Purchase #",
-      "Vendor",
-      "Unit Cost",
-      "Selling Price",
-      "Advance Paid",
-      "Collected",
-      "Pending",
-      "Gross Profit Est.",
-      "Months",
-      "Monthly Amount",
-      "Progress",
-      "Status",
-      "Created Date",
-    ]
-      .map((header) => `<th>${header}</th>`)
-      .join("");
+    const headerCells = EXPORT_COLUMN_DEFS.map(
+      (column) => `<th>${column.label}</th>`,
+    ).join("");
 
     const rowsHtml = exportRows
       .map(
         (row) => `
       <tr>
-        <td>${row.planId}</td>
-        <td>${row.customerId}</td>
-        <td>${row.customer}</td>
-        <td>${row.phone}</td>
-        <td>${row.item}</td>
-        <td>${row.purchaseId}</td>
-        <td>${row.purchaseVendor}</td>
-        <td>${row.purchaseUnitCost}</td>
-        <td>${row.sellingPrice}</td>
-        <td>${row.advancePaid}</td>
-        <td>${row.generatedRevenue}</td>
-        <td>${row.pendingRevenue}</td>
-        <td>${row.grossProfitEstimate}</td>
-        <td>${row.months}</td>
-        <td>${row.monthlyAmount}</td>
-        <td>${row.progress}</td>
-        <td>${row.status}</td>
-        <td>${row.createdDate}</td>
+        ${EXPORT_COLUMN_DEFS.map(
+          (column) => `<td>${row[column.key]}</td>`,
+        ).join("")}
       </tr>`,
       )
       .join("");
@@ -594,6 +659,370 @@ export function PlansView({
       console.error(error);
     } finally {
       setDownloadingPlanId(null);
+    }
+  }
+
+  function getPlanMobileMetricValue(
+    key: string,
+    plan: PlanRecord,
+    metrics: ReturnType<typeof getPlanMetrics>,
+  ) {
+    switch (key) {
+      case "total":
+        return formatCurrency(metrics.totalRevenue);
+      case "advancePaid":
+        return formatCurrency(plan.advancePaid);
+      case "paid":
+        return formatCurrency(metrics.generatedRevenue);
+      case "pending":
+        return formatCurrency(metrics.pendingRevenue);
+      default:
+        return "";
+    }
+  }
+
+  function renderPlanTableCell(
+    columnKey: string,
+    {
+      plan,
+      metrics,
+      tone,
+      expanded,
+      completed,
+    }: {
+      plan: PlanRecord;
+      metrics: ReturnType<typeof getPlanMetrics>;
+      tone: string;
+      expanded: boolean;
+      completed: boolean;
+    },
+  ): ReactNode {
+    switch (columnKey) {
+      case "plan":
+        return (
+          <div className="flex items-center justify-start gap-3 text-sm font-semibold text-slate-700">
+            <div className="flex items-center gap-1.5">
+              {plan.account_number}
+              <EntityViewButton
+                label={`plan ${plan.account_number}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (plan.account_number != null) {
+                    setViewingPlanId(plan.account_number);
+                  }
+                }}
+              />
+            </div>
+          </div>
+        );
+      case "customer":
+        return (
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-slate-900">
+                {plan.customer.name}
+              </p>
+              <p className="text-xs text-slate-500">{plan.customer.phone}</p>
+            </div>
+            <EntityViewButton
+              label={`customer ${plan.customer.name}`}
+              className="mt-0.5 shrink-0"
+              onClick={(event) => {
+                event.stopPropagation();
+                setViewingCustomerId(plan.customer.id);
+              }}
+            />
+          </div>
+        );
+      case "item":
+        return (
+          <div className="flex items-start gap-2 text-sm text-slate-600">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-slate-700">{plan.item.name}</p>
+              <p className="text-xs text-slate-500">{plan.months} months</p>
+            </div>
+            <EntityViewButton
+              label={`item ${plan.item.name}`}
+              className="mt-0.5 shrink-0"
+              onClick={(event) => {
+                event.stopPropagation();
+                setViewingItemId(plan.item.id);
+              }}
+            />
+          </div>
+        );
+      case "total":
+        return (
+          <span className="text-sm font-semibold text-slate-900">
+            {formatCurrency(metrics.totalRevenue)}
+          </span>
+        );
+      case "advancePaid":
+        return (
+          <span className="text-sm font-semibold text-cyan-700">
+            {formatCurrency(plan.advancePaid)}
+          </span>
+        );
+      case "paid":
+        return (
+          <span className="text-sm font-semibold text-emerald-600">
+            {formatCurrency(metrics.generatedRevenue)}
+          </span>
+        );
+      case "pending":
+        return (
+          <span className="text-sm font-semibold text-rose-600">
+            {formatCurrency(metrics.pendingRevenue)}
+          </span>
+        );
+      case "created":
+        return (
+          <span className="text-sm text-slate-600">
+            {formatDate(plan.createdAt)}
+          </span>
+        );
+      case "progress":
+        return (
+          <div className="space-y-1">
+            <div className="h-1.5 rounded-full bg-slate-200">
+              <div
+                className={`h-1.5 rounded-full ${tone}`}
+                style={{ width: getProgressWidth(metrics.progress) }}
+              />
+            </div>
+            <p className="text-xs text-slate-500">
+              {metrics.progress.toFixed(0)}%
+              {completed ? (
+                <span className="ml-2 inline-block rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700">
+                  Completed
+                </span>
+              ) : null}
+            </p>
+          </div>
+        );
+      case "actions":
+        return (
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-slate-300"
+              onClick={() => downloadPlanCard(plan)}
+              disabled={downloadingPlanId === plan.id}
+            >
+              <Download size={14} />
+              {downloadingPlanId === plan.id ? "Generating..." : "Card"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-slate-300"
+              onClick={() => downloadAcceptanceForm(plan)}
+              disabled={downloadingPlanId === plan.id}
+            >
+              <FileDown size={14} />
+              {downloadingPlanId === plan.id ? "Generating..." : "Acceptance"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-slate-300"
+              onClick={() => togglePlan(plan.id)}
+            >
+              {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </Button>
+          </div>
+        );
+      default:
+        return null;
+    }
+  }
+
+  function renderGroupedPlanTableCell(
+    columnKey: string,
+    {
+      group,
+      expanded,
+      tone,
+    }: {
+      group: GroupedPlan;
+      expanded: boolean;
+      tone: string;
+    },
+  ): ReactNode {
+    switch (columnKey) {
+      case "label":
+        return (
+          <div className="flex items-center gap-2">
+            <span className="truncate text-sm font-semibold text-slate-900">
+              {group.label}
+            </span>
+            <EntityViewButton
+              label={`${groupBy === "customer" ? "customer" : "item"} ${group.label}`}
+              className="shrink-0"
+              onClick={(event) => {
+                event.stopPropagation();
+                if (groupBy === "customer") {
+                  setViewingCustomerId(Number(group.key));
+                } else {
+                  setViewingItemId(Number(group.key));
+                }
+              }}
+            />
+          </div>
+        );
+      case "plans":
+        return (
+          <span className="text-sm text-slate-600">{group.plans.length}</span>
+        );
+      case "total":
+        return (
+          <span className="text-sm font-semibold text-slate-900">
+            {formatCurrency(group.totalRevenue)}
+          </span>
+        );
+      case "advancePaid":
+        return (
+          <span className="text-sm font-semibold text-cyan-700">
+            {formatCurrency(group.advancePaid)}
+          </span>
+        );
+      case "paid":
+        return (
+          <span className="text-sm font-semibold text-emerald-600">
+            {formatCurrency(group.generatedRevenue)}
+          </span>
+        );
+      case "pending":
+        return (
+          <span className="text-sm font-semibold text-rose-600">
+            {formatCurrency(group.pendingRevenue)}
+          </span>
+        );
+      case "progress":
+        return (
+          <div className="space-y-1">
+            <div className="h-1.5 rounded-full bg-slate-200">
+              <div
+                className={`h-1.5 rounded-full ${tone}`}
+                style={{ width: `${group.progress}%` }}
+              />
+            </div>
+            <p className="text-xs text-slate-500">
+              {group.progress.toFixed(0)}%
+            </p>
+          </div>
+        );
+      case "expand":
+        return expanded ? (
+          <ChevronUp size={16} className="inline text-slate-500" />
+        ) : (
+          <ChevronDown size={16} className="inline text-slate-500" />
+        );
+      default:
+        return null;
+    }
+  }
+
+  function renderGroupedPlanDetailCell(
+    columnKey: string,
+    {
+      plan,
+      metrics,
+      rowTone,
+    }: {
+      plan: PlanRecord;
+      metrics: ReturnType<typeof getPlanMetrics>;
+      rowTone: string;
+    },
+  ): ReactNode {
+    switch (columnKey) {
+      case "label":
+        return (
+          <div className="flex items-start gap-2 pl-5 text-sm text-slate-700">
+            <div className="min-w-0 flex-1">
+              <p>
+                {groupBy === "customer" ? plan.item.name : plan.customer.name}
+              </p>
+              <p className="font-mono text-[11px] text-slate-400">{plan.id}</p>
+            </div>
+            <EntityViewButton
+              label={`${groupBy === "customer" ? "item" : "customer"} ${
+                groupBy === "customer" ? plan.item.name : plan.customer.name
+              }`}
+              className="shrink-0"
+              onClick={(event) => {
+                event.stopPropagation();
+                if (groupBy === "customer") {
+                  setViewingItemId(plan.item.id);
+                } else {
+                  setViewingCustomerId(plan.customer.id);
+                }
+              }}
+            />
+          </div>
+        );
+      case "plans":
+        return <span className="text-xs text-slate-500">{plan.months} mo</span>;
+      case "total":
+        return (
+          <span className="text-sm text-slate-700">
+            {formatCurrency(metrics.totalRevenue)}
+          </span>
+        );
+      case "advancePaid":
+        return (
+          <span className="text-sm text-cyan-700">
+            {formatCurrency(plan.advancePaid)}
+          </span>
+        );
+      case "paid":
+        return (
+          <span className="text-sm text-emerald-600">
+            {formatCurrency(metrics.generatedRevenue)}
+          </span>
+        );
+      case "pending":
+        return (
+          <span className="text-sm text-rose-600">
+            {formatCurrency(metrics.pendingRevenue)}
+          </span>
+        );
+      case "progress":
+        return (
+          <div className="h-1.5 rounded-full bg-slate-200">
+            <div
+              className={`h-1.5 rounded-full ${rowTone}`}
+              style={{ width: getProgressWidth(metrics.progress) }}
+            />
+          </div>
+        );
+      case "expand":
+        return (
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-slate-300"
+              onClick={() => downloadPlanCard(plan)}
+              disabled={downloadingPlanId === plan.id}
+            >
+              <Download size={14} />
+              {downloadingPlanId === plan.id ? "Generating..." : "Card"}
+            </Button>
+            <Button
+              size="sm"
+              className="bg-slate-900 hover:bg-slate-800"
+              asChild
+            >
+              <Link href={`/dashboard/installments?plan=${plan.id}`}>
+                View Installments
+              </Link>
+            </Button>
+          </div>
+        );
+      default:
+        return null;
     }
   }
 
@@ -817,179 +1246,47 @@ export function PlansView({
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Plan #
-                    </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Customer
-                    </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Item
-                    </th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Total
-                    </th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Paid
-                    </th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Pending
-                    </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Created
-                    </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 w-40">
-                      Progress
-                    </th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Actions
-                    </th>
+                    {PLAN_TABLE_COLUMNS.map((column) => (
+                      <th
+                        key={column.key}
+                        className={tableHeaderClassName(column)}
+                      >
+                        {column.label}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredPlans.map((plan) => {
                     const metrics = getPlanMetrics(plan);
                     const tone = getProgressTone(metrics.progress);
-                    const hasPendingInstallments = plan.installments.some(
-                      (installment) => installment.status !== "paid",
-                    );
                     const expanded = expandedPlanRows.has(plan.id);
                     const completed = metrics.progress >= 100;
+                    const rowContext = {
+                      plan,
+                      metrics,
+                      tone,
+                      expanded,
+                      completed,
+                    };
 
                     return (
                       <>
                         <tr key={plan.id} className="hover:bg-slate-50/70">
-                          <td className="px-5 py-3.5 text-sm font-semibold text-slate-700">
-                            <div className="flex items-center gap-1.5">
-                              {plan.account_number}
-                              <EntityViewButton
-                                label={`plan ${plan.account_number}`}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  setViewingPlanId(plan.account_number);
-                                }}
-                              />
-                            </div>
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <div className="flex items-start gap-2">
-                              <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-slate-900">
-                                  {plan.customer.name}
-                                </p>
-                                <p className="text-xs text-slate-500">
-                                  {plan.customer.phone}
-                                </p>
-                              </div>
-                              <EntityViewButton
-                                label={`customer ${plan.customer.name}`}
-                                className="mt-0.5 shrink-0"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  setViewingCustomerId(plan.customer.id);
-                                }}
-                              />
-                            </div>
-                          </td>
-                          <td className="px-5 py-3.5 text-sm text-slate-600">
-                            <div className="flex items-start gap-2">
-                              <div className="min-w-0 flex-1">
-                                <p className="font-medium text-slate-700">
-                                  {plan.item.name}
-                                </p>
-                                <p className="text-xs text-slate-500">
-                                  {plan.months} months
-                                </p>
-                              </div>
-                              <EntityViewButton
-                                label={`item ${plan.item.name}`}
-                                className="mt-0.5 shrink-0"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  setViewingItemId(plan.item.id);
-                                }}
-                              />
-                            </div>
-                          </td>
-                          <td className="px-5 py-3.5 text-right text-sm font-semibold text-slate-900">
-                            {formatCurrency(metrics.totalRevenue)}
-                          </td>
-                          <td className="px-5 py-3.5 text-right text-sm font-semibold text-emerald-600">
-                            {formatCurrency(metrics.generatedRevenue)}
-                          </td>
-                          <td className="px-5 py-3.5 text-right text-sm font-semibold text-rose-600">
-                            {formatCurrency(metrics.pendingRevenue)}
-                          </td>
-                          <td className="px-5 py-3.5 text-sm text-slate-600">
-                            {formatDate(plan.createdAt)}
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <div className="space-y-1">
-                              <div className="h-1.5 rounded-full bg-slate-200">
-                                <div
-                                  className={`h-1.5 rounded-full ${tone}`}
-                                  style={{
-                                    width: getProgressWidth(metrics.progress),
-                                  }}
-                                />
-                              </div>
-                              <p className="text-xs text-slate-500">
-                                {metrics.progress.toFixed(0)}%
-                                {completed && (
-                                  <span className="ml-2 inline-block rounded bg-emerald-100 px-2 py-0.5 text-emerald-700 text-[10px] font-bold uppercase">
-                                    Completed
-                                  </span>
-                                )}
-                              </p>
-                            </div>
-                          </td>
-                          <td className="px-5 py-3.5 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-slate-300"
-                                onClick={() => downloadPlanCard(plan)}
-                                disabled={downloadingPlanId === plan.id}
-                              >
-                                <Download size={14} />
-                                {downloadingPlanId === plan.id
-                                  ? "Generating..."
-                                  : "Card"}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-slate-300"
-                                onClick={() => downloadAcceptanceForm(plan)}
-                                disabled={downloadingPlanId === plan.id}
-                              >
-                                <FileDown size={14} />
-                                {downloadingPlanId === plan.id
-                                  ? "Generating..."
-                                  : "Acceptance"}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-slate-300"
-                                onClick={() => togglePlan(plan.id)}
-                              >
-                                {expanded ? (
-                                  <ChevronUp size={14} />
-                                ) : (
-                                  <ChevronDown size={14} />
-                                )}
-                                {expanded ? "Hide" : "Show"}
-                              </Button>
-                            </div>
-                          </td>
+                          {PLAN_TABLE_COLUMNS.map((column) => (
+                            <td
+                              key={column.key}
+                              className={tableCellClassName(column)}
+                            >
+                              {renderPlanTableCell(column.key, rowContext)}
+                            </td>
+                          ))}
                         </tr>
 
                         {expanded ? (
                           <tr>
                             <td
-                              colSpan={9}
+                              colSpan={PLAN_TABLE_COLUMNS.length}
                               className="bg-slate-50/60 px-5 py-4"
                             >
                               <div className="space-y-2">
@@ -1000,6 +1297,8 @@ export function PlansView({
                                   );
                                   const latestTransactionId =
                                     installment.transactions[0]?.id;
+                                  const canEditPayment =
+                                    Boolean(latestTransactionId);
                                   const canViewInvoice =
                                     installment.status !== "pending" &&
                                     Boolean(latestTransactionId);
@@ -1059,17 +1358,32 @@ export function PlansView({
                                         <Button
                                           size="sm"
                                           className="bg-slate-900 hover:bg-slate-800"
-                                          disabled={remaining <= 0 || completed}
-                                          onClick={() =>
-                                            setSelectedInstallmentId(
-                                              installment.id,
-                                            )
+                                          disabled={
+                                            remaining <= 0 && !canEditPayment
                                           }
+                                          onClick={() => {
+                                            if (remaining > 0) {
+                                              setEditingTransactionId(null);
+                                              setSelectedInstallmentId(
+                                                installment.id,
+                                              );
+                                              return;
+                                            }
+
+                                            if (latestTransactionId) {
+                                              setEditingTransactionId(
+                                                latestTransactionId,
+                                              );
+                                              setSelectedInstallmentId(
+                                                installment.id,
+                                              );
+                                            }
+                                          }}
                                         >
-                                          {completed
-                                            ? "Paid"
-                                            : remaining > 0
-                                              ? "Record"
+                                          {remaining > 0
+                                            ? "Record"
+                                            : canEditPayment
+                                              ? "Edit Payment"
                                               : "Paid"}
                                         </Button>
                                       </div>
@@ -1106,7 +1420,9 @@ export function PlansView({
                             label={`plan ${plan.account_number}`}
                             onClick={(event) => {
                               event.stopPropagation();
-                              setViewingPlanId(plan.account_number);
+                              if (plan.account_number != null) {
+                                setViewingPlanId(plan.account_number);
+                              }
                             }}
                           />
                         </div>
@@ -1161,25 +1477,21 @@ export function PlansView({
                         ? "Generating..."
                         : "Download Card"}
                     </Button>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div>
-                        <p className="text-slate-500">Total</p>
-                        <p className="font-semibold text-slate-900">
-                          {formatCurrency(metrics.totalRevenue)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-slate-500">Paid</p>
-                        <p className="font-semibold text-emerald-600">
-                          {formatCurrency(metrics.generatedRevenue)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-slate-500">Pending</p>
-                        <p className="font-semibold text-rose-600">
-                          {formatCurrency(metrics.pendingRevenue)}
-                        </p>
-                      </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {PLAN_MOBILE_METRIC_COLUMNS.map((metric) => (
+                        <div key={metric.key}>
+                          <p className="text-slate-500">{metric.label}</p>
+                          <p
+                            className={`font-semibold ${metric.valueClassName}`}
+                          >
+                            {getPlanMobileMetricValue(
+                              metric.key,
+                              plan,
+                              metrics,
+                            )}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                     <div>
                       <div className="h-1.5 rounded-full bg-slate-200">
@@ -1202,6 +1514,7 @@ export function PlansView({
                           );
                           const latestTransactionId =
                             installment.transactions[0]?.id;
+                          const canEditPayment = Boolean(latestTransactionId);
                           const canViewInvoice =
                             installment.status !== "pending" &&
                             Boolean(latestTransactionId);
@@ -1258,15 +1571,26 @@ export function PlansView({
                                 <Button
                                   size="sm"
                                   className="bg-slate-900 hover:bg-slate-800"
-                                  disabled={remaining <= 0 || completed}
-                                  onClick={() =>
-                                    setSelectedInstallmentId(installment.id)
-                                  }
+                                  disabled={remaining <= 0 && !canEditPayment}
+                                  onClick={() => {
+                                    if (remaining > 0) {
+                                      setEditingTransactionId(null);
+                                      setSelectedInstallmentId(installment.id);
+                                      return;
+                                    }
+
+                                    if (latestTransactionId) {
+                                      setEditingTransactionId(
+                                        latestTransactionId,
+                                      );
+                                      setSelectedInstallmentId(installment.id);
+                                    }
+                                  }}
                                 >
-                                  {completed
-                                    ? "Paid"
-                                    : remaining > 0
-                                      ? "Record"
+                                  {remaining > 0
+                                    ? "Record"
+                                    : canEditPayment
+                                      ? "Edit Payment"
                                       : "Paid"}
                                 </Button>
                               </div>
@@ -1285,33 +1609,25 @@ export function PlansView({
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    {groupBy === "customer" ? "Customer" : "Item"}
-                  </th>
-                  <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Plans
-                  </th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Total
-                  </th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Paid
-                  </th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Pending
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 w-40">
-                    Progress
-                  </th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Expand
-                  </th>
+                  {GROUPED_PLAN_TABLE_COLUMNS.map((column) => (
+                    <th
+                      key={column.key}
+                      className={tableHeaderClassName(column)}
+                    >
+                      {column.key === "label"
+                        ? groupBy === "customer"
+                          ? "Customer"
+                          : "Item"
+                        : column.label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {groupedPlans.map((group) => {
                   const expanded = expandedGroups.has(group.key);
                   const tone = getProgressTone(group.progress);
+                  const groupContext = { group, expanded, tone };
 
                   return (
                     <>
@@ -1320,150 +1636,41 @@ export function PlansView({
                         className="border-b border-slate-100 hover:bg-slate-50/70 cursor-pointer"
                         onClick={() => toggleGroup(group.key)}
                       >
-                        <td className="px-5 py-3.5 text-sm font-semibold text-slate-900">
-                          <div className="flex items-center gap-2">
-                            <span className="truncate">{group.label}</span>
-                            <EntityViewButton
-                              label={`${groupBy === "customer" ? "customer" : "item"} ${group.label}`}
-                              className="shrink-0"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                if (groupBy === "customer") {
-                                  setViewingCustomerId(Number(group.key));
-                                } else {
-                                  setViewingItemId(Number(group.key));
-                                }
-                              }}
-                            />
-                          </div>
-                        </td>
-                        <td className="px-5 py-3.5 text-center text-sm text-slate-600">
-                          {group.plans.length}
-                        </td>
-                        <td className="px-5 py-3.5 text-right text-sm font-semibold text-slate-900">
-                          {formatCurrency(group.totalRevenue)}
-                        </td>
-                        <td className="px-5 py-3.5 text-right text-sm font-semibold text-emerald-600">
-                          {formatCurrency(group.generatedRevenue)}
-                        </td>
-                        <td className="px-5 py-3.5 text-right text-sm font-semibold text-rose-600">
-                          {formatCurrency(group.pendingRevenue)}
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <div className="space-y-1">
-                            <div className="h-1.5 rounded-full bg-slate-200">
-                              <div
-                                className={`h-1.5 rounded-full ${tone}`}
-                                style={{ width: `${group.progress}%` }}
-                              />
-                            </div>
-                            <p className="text-xs text-slate-500">
-                              {group.progress.toFixed(0)}%
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-5 py-3.5 text-right text-slate-500">
-                          {expanded ? (
-                            <ChevronUp size={16} className="inline" />
-                          ) : (
-                            <ChevronDown size={16} className="inline" />
-                          )}
-                        </td>
+                        {GROUPED_PLAN_TABLE_COLUMNS.map((column) => (
+                          <td
+                            key={column.key}
+                            className={tableCellClassName(column)}
+                          >
+                            {renderGroupedPlanTableCell(
+                              column.key,
+                              groupContext,
+                            )}
+                          </td>
+                        ))}
                       </tr>
 
                       {expanded
                         ? group.plans.map((plan) => {
                             const metrics = getPlanMetrics(plan);
                             const rowTone = getProgressTone(metrics.progress);
+                            const detailContext = { plan, metrics, rowTone };
 
                             return (
                               <tr
                                 key={plan.id}
                                 className="border-b border-slate-100 bg-slate-50/40"
                               >
-                                <td className="px-5 py-3.5 pl-10 text-sm text-slate-700">
-                                  <div className="flex items-start gap-2">
-                                    <div className="min-w-0 flex-1">
-                                      <p>
-                                        {groupBy === "customer"
-                                          ? plan.item.name
-                                          : plan.customer.name}
-                                      </p>
-                                      <p className="text-[11px] text-slate-400 font-mono">
-                                        {plan.id}
-                                      </p>
-                                    </div>
-                                    <EntityViewButton
-                                      label={`${groupBy === "customer" ? "item" : "customer"} ${
-                                        groupBy === "customer"
-                                          ? plan.item.name
-                                          : plan.customer.name
-                                      }`}
-                                      className="shrink-0"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        if (groupBy === "customer") {
-                                          setViewingItemId(plan.item.id);
-                                        } else {
-                                          setViewingCustomerId(
-                                            plan.customer.id,
-                                          );
-                                        }
-                                      }}
-                                    />
-                                  </div>
-                                </td>
-                                <td className="px-5 py-3.5 text-center text-xs text-slate-500">
-                                  {plan.months} mo
-                                </td>
-                                <td className="px-5 py-3.5 text-right text-sm text-slate-700">
-                                  {formatCurrency(metrics.totalRevenue)}
-                                </td>
-                                <td className="px-5 py-3.5 text-right text-sm text-emerald-600">
-                                  {formatCurrency(metrics.generatedRevenue)}
-                                </td>
-                                <td className="px-5 py-3.5 text-right text-sm text-rose-600">
-                                  {formatCurrency(metrics.pendingRevenue)}
-                                </td>
-                                <td className="px-5 py-3.5">
-                                  <div className="h-1.5 rounded-full bg-slate-200">
-                                    <div
-                                      className={`h-1.5 rounded-full ${rowTone}`}
-                                      style={{
-                                        width: getProgressWidth(
-                                          metrics.progress,
-                                        ),
-                                      }}
-                                    />
-                                  </div>
-                                </td>
-                                <td className="px-5 py-3.5 text-right">
-                                  <div className="flex items-center justify-end gap-2">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="border-slate-300"
-                                      onClick={() => downloadPlanCard(plan)}
-                                      disabled={downloadingPlanId === plan.id}
-                                    >
-                                      <Download size={14} />
-                                      {downloadingPlanId === plan.id
-                                        ? "Generating..."
-                                        : "Card"}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      className="bg-slate-900 hover:bg-slate-800"
-                                      asChild
-                                    >
-                                      <Link
-                                        href={`/dashboard/installments?plan=${plan.id}`}
-                                      >
-                                        View Installments
-                                      </Link>
-                                    </Button>
-                                  </div>
-                                </td>
+                                {GROUPED_PLAN_TABLE_COLUMNS.map((column) => (
+                                  <td
+                                    key={column.key}
+                                    className={tableCellClassName(column)}
+                                  >
+                                    {renderGroupedPlanDetailCell(
+                                      column.key,
+                                      detailContext,
+                                    )}
+                                  </td>
+                                ))}
                               </tr>
                             );
                           })
@@ -1512,29 +1719,44 @@ export function PlansView({
         onOpenChange={(open) => {
           if (!open) {
             setSelectedInstallmentId(null);
+            setEditingTransactionId(null);
           }
         }}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Record Installment Transaction</DialogTitle>
+            <DialogTitle>
+              {editingTransactionId
+                ? "Edit Installment Transaction"
+                : "Record Installment Transaction"}
+            </DialogTitle>
             <DialogDescription>
-              Add a payment directly against this installment.
+              {editingTransactionId
+                ? "Update the same transaction record for this paid installment."
+                : "Add a payment directly against this installment."}
             </DialogDescription>
           </DialogHeader>
 
-          {selectedInstallmentId ? (
+          {selectedInstallment ? (
             <TransactionForm
               installments={installmentOptions}
-              initialInstallmentId={selectedInstallmentId}
+              initialInstallmentId={selectedInstallment.id}
+              transactionId={editingTransactionId || undefined}
+              mode={editingTransactionId ? "edit" : "create"}
               lockInstallment
-              submitLabel="Record Transaction"
+              submitLabel={
+                editingTransactionId ? "Save Changes" : "Record Transaction"
+              }
               onSuccess={(createdTransaction) => {
                 setSelectedInstallmentId(null);
+                setEditingTransactionId(null);
                 setViewingTransactionId(createdTransaction.id);
                 router.refresh();
               }}
-              onCancel={() => setSelectedInstallmentId(null)}
+              onCancel={() => {
+                setSelectedInstallmentId(null);
+                setEditingTransactionId(null);
+              }}
             />
           ) : null}
         </DialogContent>

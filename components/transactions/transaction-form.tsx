@@ -31,6 +31,8 @@ interface InstallmentOption {
 export function TransactionForm({
   installments,
   initialInstallmentId,
+  transactionId,
+  mode = "create",
   lockInstallment,
   submitLabel,
   onSuccess,
@@ -38,6 +40,8 @@ export function TransactionForm({
 }: {
   installments: InstallmentOption[];
   initialInstallmentId?: string;
+  transactionId?: number;
+  mode?: "create" | "edit";
   lockInstallment?: boolean;
   submitLabel?: string;
   onSuccess?: (createdTransaction: { id: number }) => void;
@@ -60,6 +64,47 @@ export function TransactionForm({
       }));
     }
   }, [initialInstallmentId]);
+
+  useEffect(() => {
+    if (mode !== "edit" || !transactionId) {
+      return;
+    }
+
+    let ignore = false;
+
+    async function loadTransaction() {
+      try {
+        const response = await fetch(`/api/transactions/${transactionId}`, {
+          cache: "no-store",
+        });
+        const payload = await response.json();
+
+        if (!response.ok) {
+          setError(payload.error || "Failed to load transaction");
+          return;
+        }
+
+        if (!ignore) {
+          setFormData((prev) => ({
+            ...prev,
+            installmentId: payload.installmentId || prev.installmentId,
+            amount: String(payload.amount ?? ""),
+            description: payload.description || "",
+          }));
+        }
+      } catch {
+        if (!ignore) {
+          setError("Failed to load transaction");
+        }
+      }
+    }
+
+    loadTransaction();
+
+    return () => {
+      ignore = true;
+    };
+  }, [mode, transactionId]);
 
   const selectedInstallment = useMemo(
     () => installments.find((i) => i.id === formData.installmentId),
@@ -93,19 +138,23 @@ export function TransactionForm({
     setLoading(true);
 
     try {
-      const response = await fetch("/api/transactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          installmentId: formData.installmentId,
-          amount: amountValue,
-          description: formData.description || null,
-        }),
-      });
+      const isEdit = mode === "edit" && transactionId;
+      const response = await fetch(
+        isEdit ? `/api/transactions/${transactionId}` : "/api/transactions",
+        {
+          method: isEdit ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            installmentId: formData.installmentId,
+            amount: amountValue,
+            description: formData.description || null,
+          }),
+        },
+      );
 
       if (!response.ok) {
         const data = await response.json();
-        setError(data.error || "Failed to record transaction");
+        setError(data.error || "Failed to save transaction");
       } else {
         const data = await response.json();
         const createdTransaction = data?.transaction as { id: number };
@@ -266,7 +315,12 @@ export function TransactionForm({
           disabled={loading}
           className="flex-1 bg-slate-900 hover:bg-slate-800"
         >
-          {loading ? "Recording..." : submitLabel || "Record Payment"}
+          {loading
+            ? mode === "edit"
+              ? "Saving..."
+              : "Recording..."
+            : submitLabel ||
+              (mode === "edit" ? "Save Changes" : "Record Payment")}
         </Button>
         {onCancel ? (
           <Button

@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,56 +43,67 @@ export async function POST(request: NextRequest) {
     });
 
     if (!installment) {
-      return NextResponse.json({ error: "Installment not found" }, { status: 404 });
-    }
-
-    const remainingInstallment = Math.max(
-      installment.amount - installment.paidAmount,
-      0,
-    );
-
-    if (remainingInstallment <= 0) {
       return NextResponse.json(
-        { error: "This installment is already fully paid" },
-        { status: 400 },
+        { error: "Installment not found" },
+        { status: 404 },
       );
     }
 
-    // if (amountValue > remainingInstallment) {
-    //   return NextResponse.json(
-    //     {
-    //       error: `Amount exceeds remaining installment balance (${remainingInstallment.toFixed(2)})`,
-    //     },
-    //     { status: 400 },
-    //   );
-    // }
-
     const transaction = await prisma.$transaction(async (tx) => {
-      const createdTransaction = await tx.transaction.create({
-        data: {
-          planId: installment.planId,
+      const existingTransaction = await tx.transaction.findFirst({
+        where: {
           installmentId: installment.id,
-          customerId: installment.plan.customerId,
           tenantId: tenant.id,
-          amount: amountValue,
-          description: description || null,
-          transactionDate: new Date(),
         },
-        include: {
-          plan: {
-            include: { customer: true, item: true },
-          },
-          installment: {
-            select: {
-              id: true,
-              installmentNumber: true,
-              status: true,
-            },
-          },
+        select: {
+          id: true,
         },
       });
 
-      const nextPaidAmount = installment.paidAmount + amountValue;
+      const transactionData = {
+        planId: installment.planId,
+        installmentId: installment.id,
+        customerId: installment.plan.customerId,
+        tenantId: tenant.id,
+        amount: amountValue,
+        description: description || null,
+        transactionDate: new Date(),
+      };
+
+      const savedTransaction = existingTransaction
+        ? await tx.transaction.update({
+            where: { id: existingTransaction.id },
+            data: transactionData,
+            include: {
+              plan: {
+                include: { customer: true, item: true },
+              },
+              installment: {
+                select: {
+                  id: true,
+                  installmentNumber: true,
+                  status: true,
+                },
+              },
+            },
+          })
+        : await tx.transaction.create({
+            data: transactionData,
+            include: {
+              plan: {
+                include: { customer: true, item: true },
+              },
+              installment: {
+                select: {
+                  id: true,
+                  installmentNumber: true,
+                  status: true,
+                },
+              },
+            },
+          });
+
+      const nextPaidAmount = amountValue;
       const nextStatus =
         nextPaidAmount >= installment.amount
           ? "paid"
@@ -108,18 +119,18 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      return createdTransaction;
+      return savedTransaction;
     });
 
     return NextResponse.json(
       { transaction, message: "Transaction recorded successfully" },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Create transaction error:", error);
     return NextResponse.json(
       { error: "Failed to record transaction" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -137,7 +148,7 @@ export async function GET(request: NextRequest) {
       },
       include: {
         plan: {
-          include: { customer: true, item: true, account_number: true },
+          include: { customer: true, item: true },
         },
         installment: {
           select: {
@@ -154,7 +165,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to fetch transactions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
