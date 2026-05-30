@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, splitWholeAmount, wholeNumberInput } from "@/lib/utils";
 import {
   Popover,
   PopoverContent,
@@ -355,13 +355,15 @@ export function OnboardingForm({
     ? Math.max(selectedPurchase.quantity - selectedPurchase.consumedQty, 0)
     : 0;
 
-  const sellingPrice = parseFloat(formData.sellingPrice || "0");
-  const advancePaid = parseFloat(formData.advancePaid || "0");
+  const sellingPrice = parseInt(formData.sellingPrice || "0", 10) || 0;
+  const advancePaid = parseInt(formData.advancePaid || "0", 10) || 0;
   const months = parseInt(formData.months || "0", 10);
   const purchaseUnitCost = selectedPurchase?.unitCost ?? 0;
   const estimatedGrossProfit = sellingPrice - purchaseUnitCost;
   const remainingBalance = Math.max(sellingPrice - advancePaid, 0);
-  const monthlyAmount = months > 0 ? remainingBalance / months : 0;
+  const installmentAmounts =
+    months > 0 ? splitWholeAmount(remainingBalance, months) : [];
+  const monthlyAmount = installmentAmounts[0] ?? 0;
   const planCreatedDate = new Date(formData.createdAt || new Date());
 
   const installmentsPreview = useMemo(() => {
@@ -369,6 +371,7 @@ export function OnboardingForm({
       return [] as {
         installmentNumber: number;
         dueDate: Date;
+        amount: number;
         monthLabel: string;
       }[];
     }
@@ -379,13 +382,14 @@ export function OnboardingForm({
       return {
         installmentNumber,
         dueDate,
+        amount: installmentAmounts[index] ?? 0,
         monthLabel: dueDate.toLocaleDateString("en-US", {
           month: "long",
           year: "numeric",
         }),
       };
     });
-  }, [months, planCreatedDate]);
+  }, [months, planCreatedDate, installmentAmounts]);
 
   async function createCustomerNow() {
     setError("");
@@ -594,8 +598,8 @@ export function OnboardingForm({
       return;
     }
 
-    if (!Number.isFinite(unitCost) || unitCost <= 0) {
-      setError("Unit cost must be greater than 0.");
+    if (!Number.isInteger(unitCost) || unitCost <= 0) {
+      setError("Unit cost must be a whole number greater than 0.");
       return;
     }
 
@@ -656,8 +660,10 @@ export function OnboardingForm({
 
     if (step === 2) {
       return (
+        Number.isInteger(sellingPrice) &&
         sellingPrice > 0 &&
         months > 0 &&
+        Number.isInteger(advancePaid) &&
         advancePaid >= 0 &&
         advancePaid <= sellingPrice
       );
@@ -678,8 +684,8 @@ export function OnboardingForm({
     }
 
     if (step === 2) {
-      if (sellingPrice <= 0) {
-        return "Total price must be greater than zero.";
+      if (!Number.isInteger(sellingPrice) || sellingPrice <= 0) {
+        return "Total price must be a whole number greater than zero.";
       }
       if (months <= 0) {
         return "Installment duration must be at least 1 month.";
@@ -715,8 +721,8 @@ export function OnboardingForm({
           customerId: Number(formData.customerId),
           purchaseId: Number(formData.purchaseId),
           itemId: Number(selectedPurchase?.item.id || formData.itemId),
-          sellingPrice: parseFloat(formData.sellingPrice),
-          advancePaid: parseFloat(formData.advancePaid),
+          sellingPrice,
+          advancePaid,
           months: parseInt(formData.months, 10),
           createdAt: formData.createdAt,
           tenantId,
@@ -1339,14 +1345,15 @@ export function OnboardingForm({
                         />
                         <Input
                           type="number"
-                          min="0"
-                          step="0.01"
+                          min="1"
+                          step="1"
+                          inputMode="numeric"
                           placeholder="Unit cost *"
                           value={purchaseCreate.unitCost}
                           onChange={(event) =>
                             setPurchaseCreate((current) => ({
                               ...current,
-                              unitCost: event.target.value,
+                              unitCost: wholeNumberInput(event.target.value),
                             }))
                           }
                         />
@@ -1428,11 +1435,15 @@ export function OnboardingForm({
                 <Input
                   id="sellingPrice"
                   type="number"
-                  step="0.01"
-                  min="0"
+                  step="1"
+                  min="1"
+                  inputMode="numeric"
                   value={formData.sellingPrice}
                   onChange={(e) =>
-                    setFormData({ ...formData, sellingPrice: e.target.value })
+                    setFormData({
+                      ...formData,
+                      sellingPrice: wholeNumberInput(e.target.value),
+                    })
                   }
                   required
                   className="mt-1 h-11 rounded-xl border-slate-200"
@@ -1450,11 +1461,15 @@ export function OnboardingForm({
                   <Input
                     id="advancePaid"
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0"
+                    inputMode="numeric"
                     value={formData.advancePaid}
                     onChange={(e) =>
-                      setFormData({ ...formData, advancePaid: e.target.value })
+                      setFormData({
+                        ...formData,
+                        advancePaid: wholeNumberInput(e.target.value),
+                      })
                     }
                     className="mt-1 h-11 rounded-xl border-slate-200"
                   />
@@ -1635,15 +1650,20 @@ export function OnboardingForm({
                       <span className="font-medium text-slate-700">
                         Installment #{entry.installmentNumber}
                       </span>
-                      <span className="text-slate-600">
-                        {entry.monthLabel} (
-                        {entry.dueDate.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                        )
-                      </span>
+                      <div className="text-right">
+                        <span className="block font-semibold text-slate-900">
+                          {formatCurrency(entry.amount)}
+                        </span>
+                        <span className="text-slate-600">
+                          {entry.monthLabel} (
+                          {entry.dueDate.toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                          )
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>

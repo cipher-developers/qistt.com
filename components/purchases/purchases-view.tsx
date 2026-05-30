@@ -68,7 +68,7 @@ type Purchase = {
 
 type Option = {
   id: number;
-  label: string;
+  name: string;
 };
 
 type PurchasesViewProps = {
@@ -168,8 +168,8 @@ export function PurchasesView({ purchases, vendors, items }: PurchasesViewProps)
           quantity: row.quantity,
           consumed: row.consumedQty,
           remaining: Math.max(row.quantity - row.consumedQty, 0),
-          unitCost: row.unitCost,
-          totalCost: row.quantity * row.unitCost,
+          unitCost: Math.round(row.unitCost),
+          totalCost: row.quantity * Math.round(row.unitCost),
           notes: row.notes || "",
         })),
     [filtered],
@@ -448,10 +448,10 @@ export function PurchasesView({ purchases, vendors, items }: PurchasesViewProps)
                     {remaining}
                   </div>
                   <div className="text-sm text-slate-700">
-                    {formatCurrency(row.unitCost)}
+                    {formatCurrency(Math.round(row.unitCost))}
                   </div>
                   <div className="text-sm font-semibold text-slate-900">
-                    {formatCurrency(row.unitCost * row.quantity)}
+                    {formatCurrency(Math.round(row.unitCost) * row.quantity)}
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -497,7 +497,11 @@ export function PurchasesView({ purchases, vendors, items }: PurchasesViewProps)
                   <p>Qty: {row.quantity}</p>
                   <p>Used: {row.consumedQty}</p>
                   <p>Balance: {remaining}</p>
-                  <p>Unit: {formatCurrency(row.unitCost)}</p>
+                  <p>Unit: {formatCurrency(Math.round(row.unitCost))}</p>
+                  <p>
+                    Total:{" "}
+                    {formatCurrency(Math.round(row.unitCost) * row.quantity)}
+                  </p>
                 </div>
                 <div className="mt-3 flex gap-2">
                   <Button

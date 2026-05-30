@@ -6,7 +6,7 @@ import { AlertCircle, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, wholeNumberInput } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -88,7 +88,7 @@ export function TransactionForm({
           setFormData((prev) => ({
             ...prev,
             installmentId: payload.installmentId || prev.installmentId,
-            amount: String(payload.amount ?? ""),
+            amount: String(Math.round(payload.amount ?? 0)),
             description: payload.description || "",
           }));
         }
@@ -124,8 +124,8 @@ export function TransactionForm({
     }
 
     const amountValue = Number(formData.amount);
-    if (!Number.isFinite(amountValue) || amountValue <= 0) {
-      setError("Please enter a valid amount");
+    if (!Number.isInteger(amountValue) || amountValue <= 0) {
+      setError("Please enter a valid whole-number amount");
       return;
     }
 
@@ -268,7 +268,7 @@ export function TransactionForm({
               onClick={() =>
                 setFormData({
                   ...formData,
-                  amount: remainingBalance.toFixed(2),
+                  amount: String(Math.round(remainingBalance)),
                 })
               }
               className="flex items-center gap-1 text-xs text-slate-500 transition-colors hover:text-slate-800"
@@ -280,11 +280,14 @@ export function TransactionForm({
         </div>
         <Input
           type="number"
-          step="0.01"
-          min="0.01"
-          placeholder="0.00"
+          step="1"
+          min="1"
+          inputMode="numeric"
+          placeholder="0"
           value={formData.amount}
-          onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, amount: wholeNumberInput(e.target.value) })
+          }
         />
       </div>
 

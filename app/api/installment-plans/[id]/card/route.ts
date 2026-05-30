@@ -35,8 +35,8 @@ function formatMonthYear(value: Date | string) {
   });
 }
 
-function toTwoDecimals(value: number) {
-  return Number(value.toFixed(2));
+function toWholeAmount(value: number) {
+  return Math.round(value);
 }
 
 function setInstallmentRow(
@@ -145,13 +145,13 @@ export async function GET(
       );
     }
 
-    const totalPaid = toTwoDecimals(
+    const totalPaid = toWholeAmount(
       plan.installments.reduce(
         (sum, installment) => sum + installment.paidAmount,
         0,
       ),
     );
-    const remainingAmount = toTwoDecimals(
+    const remainingAmount = toWholeAmount(
       Math.max(plan.sellingPrice - totalPaid, 0),
     );
     const lastInstallment = plan.installments[plan.installments.length - 1];
@@ -171,18 +171,18 @@ export async function GET(
     worksheet.getCell("H6").value = plan.item.model || "";
     worksheet.getCell("B8").value = plan.customer.reference?.name || "Others";
     worksheet.getCell("E8").value = plan.customer.phone || "";
-    worksheet.getCell("A10").value = toTwoDecimals(plan.sellingPrice);
-    worksheet.getCell("D10").value = toTwoDecimals(plan.advancePaid);
-    worksheet.getCell("G10").value = toTwoDecimals(plan.monthlyAmount);
+    worksheet.getCell("A10").value = toWholeAmount(plan.sellingPrice);
+    worksheet.getCell("D10").value = toWholeAmount(plan.advancePaid);
+    worksheet.getCell("G10").value = toWholeAmount(plan.monthlyAmount);
 
     worksheet.getCell("C14").value = formatMonthYear(endDate);
     worksheet.getCell("E14").value = totalPaid;
-    worksheet.getCell("F14").value = toTwoDecimals(plan.advancePaid);
+    worksheet.getCell("F14").value = toWholeAmount(plan.advancePaid);
     worksheet.getCell("G14").value = remainingAmount;
-    worksheet.getCell("I14").value = toTwoDecimals(plan.monthlyAmount);
+    worksheet.getCell("I14").value = toWholeAmount(plan.monthlyAmount);
 
     const installmentRows: InstallmentRow[] = [];
-    let runningOutstanding = toTwoDecimals(plan.sellingPrice);
+    let runningOutstanding = toWholeAmount(plan.sellingPrice);
 
     for (let index = 0; index < 12; index += 1) {
       const installment = plan.installments[index];
@@ -201,10 +201,10 @@ export async function GET(
         continue;
       }
 
-      const remain = toTwoDecimals(
+      const remain = toWholeAmount(
         Math.max(installment.amount - installment.paidAmount, 0),
       );
-      runningOutstanding = toTwoDecimals(
+      runningOutstanding = toWholeAmount(
         Math.max(runningOutstanding - installment.paidAmount, 0),
       );
 
@@ -218,7 +218,7 @@ export async function GET(
         invoiceNo: installment.transactions[0]
           ? String(installment.transactions[0].id)
           : "",
-        received: toTwoDecimals(installment.paidAmount),
+        received: toWholeAmount(installment.paidAmount),
         remain,
         outstandingBalance: runningOutstanding,
       });
@@ -229,20 +229,20 @@ export async function GET(
       setInstallmentRow(worksheet, 11, 11 + i, installmentRows[i + 6]);
     }
 
-    const totalReceivedSum = toTwoDecimals(
+    const totalReceivedSum = toWholeAmount(
       installmentRows.reduce(
         (sum, row) =>
           sum + (typeof row.received === "number" ? row.received : 0),
         0,
       ),
     );
-    const totalRemainSum = toTwoDecimals(
+    const totalRemainSum = toWholeAmount(
       installmentRows.reduce(
         (sum, row) => sum + (typeof row.remain === "number" ? row.remain : 0),
         0,
       ),
     );
-    const totalOutstandingSum = toTwoDecimals(
+    const totalOutstandingSum = toWholeAmount(
       installmentRows.reduce(
         (sum, row) =>
           sum +

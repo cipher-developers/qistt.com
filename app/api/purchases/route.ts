@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentTenant } from "@/lib/auth-helper";
 import prisma from "@/lib/prisma";
+import { parseWholeAmount } from "@/lib/utils";
 
 export async function GET() {
     try {
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
         const vendorIdValue = Number(vendorId);
         const itemIdValue = Number(itemId);
         const quantityValue = Number(quantity);
-        const unitCostValue = Number(unitCost);
+        const unitCostValue = parseWholeAmount(unitCost);
         const purchasedAtValue = purchasedAt ? new Date(purchasedAt) : new Date();
 
         if (
@@ -51,8 +52,7 @@ export async function POST(request: NextRequest) {
             itemIdValue <= 0 ||
             !Number.isInteger(quantityValue) ||
             quantityValue <= 0 ||
-            !Number.isFinite(unitCostValue) ||
-            unitCostValue <= 0 ||
+            unitCostValue === null ||
             Number.isNaN(purchasedAtValue.getTime())
         ) {
             return NextResponse.json({ error: "Invalid purchase payload" }, { status: 400 });

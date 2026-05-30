@@ -144,7 +144,7 @@ model Purchase {
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   quantity    Int
   consumedQty Int      @default(0)
-  unitCost    Float
+  unitCost    Int
   purchasedAt DateTime
   notes       String?
   plans       InstallmentPlan[]
@@ -167,9 +167,9 @@ model InstallmentPlan {
   purchase        Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
   tenantId        String
   tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  sellingPrice    Float
-  advancePaid     Float    @default(0)
-  monthlyAmount   Float
+  sellingPrice    Int
+  advancePaid     Int      @default(0)
+  monthlyAmount   Int
   months          Int
   startDate       DateTime
   status          String   @default("active")
@@ -190,8 +190,8 @@ model Installment {
   plan            InstallmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
   installmentNumber Int
   dueDate         DateTime
-  amount          Float
-  paidAmount      Float    @default(0)
+  amount          Int
+  paidAmount      Int    @default(0)
   status          String   @default("pending") // pending, partial, paid
   transactions    Transaction[]
   createdAt       DateTime @default(now())
@@ -211,7 +211,7 @@ model Transaction {
   customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   tenantId        String
   tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  amount          Float
+  amount          Int
   description     String?
   transactionDate DateTime
   createdAt       DateTime @default(now())

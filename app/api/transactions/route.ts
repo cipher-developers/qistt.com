@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentTenant } from "@/lib/auth-helper";
 import prisma from "@/lib/prisma";
+import { parseWholeAmount } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,13 +13,9 @@ export async function POST(request: NextRequest) {
     const { installmentId, amount, description } = await request.json();
 
     const installmentIdValue = String(installmentId || "").trim();
-    const amountValue = Number(amount);
+    const amountValue = parseWholeAmount(amount);
 
-    if (
-      !installmentIdValue ||
-      !Number.isFinite(amountValue) ||
-      amountValue <= 0
-    ) {
+    if (!installmentIdValue || amountValue === null) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },

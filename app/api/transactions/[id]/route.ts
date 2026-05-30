@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentTenant } from "@/lib/auth-helper";
 import prisma from "@/lib/prisma";
+import { parseWholeAmount } from "@/lib/utils";
 
 export async function GET(
   request: NextRequest,
@@ -136,11 +137,11 @@ export async function PATCH(
     }
 
     const { amount, description } = await request.json();
-    const amountValue = Number(amount);
+    const amountValue = parseWholeAmount(amount);
 
-    if (!Number.isFinite(amountValue) || amountValue <= 0) {
+    if (amountValue === null) {
       return NextResponse.json(
-        { error: "Amount must be greater than zero" },
+        { error: "Amount must be a whole number greater than zero" },
         { status: 400 },
       );
     }

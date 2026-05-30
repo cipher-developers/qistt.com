@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentTenant } from "@/lib/auth-helper";
 import prisma from "@/lib/prisma";
+import {
+  parseNonNegativeWholeAmount,
+  parseWholeAmount,
+  splitWholeAmount,
+} from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,8 +28,8 @@ export async function POST(request: NextRequest) {
     const customerIdValue = Number(customerId);
     const itemIdValue = Number(itemId);
     const purchaseIdValue = Number(purchaseId);
-    const sellingPriceValue = Number(sellingPrice);
-    const advancePaidValue = Number(advancePaid ?? 0);
+    const sellingPriceValue = parseWholeAmount(sellingPrice);
+    const advancePaidValue = parseNonNegativeWholeAmount(advancePaid ?? 0);
     const monthsValue = Number(months);
     const createdAtValue = createdAt ? new Date(createdAt) : new Date();
     const accountNumberValue = account_number !== undefined && account_number !== null && account_number !== "" ? Number(account_number) : undefined;
@@ -36,12 +41,10 @@ export async function POST(request: NextRequest) {
       itemIdValue <= 0 ||
       !Number.isInteger(purchaseIdValue) ||
       purchaseIdValue <= 0 ||
-      !Number.isFinite(sellingPriceValue) ||
-      sellingPriceValue <= 0 ||
+      sellingPriceValue === null ||
+      advancePaidValue === null ||
       !Number.isInteger(monthsValue) ||
       monthsValue <= 0 ||
-      !Number.isFinite(advancePaidValue) ||
-      advancePaidValue < 0 ||
       Number.isNaN(createdAtValue.getTime())
     ) {
       return NextResponse.json(
@@ -57,8 +60,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const monthlyAmount =
-      (sellingPriceValue - advancePaidValue) / monthsValue;
+    const remainingBalance = sellingPriceValue - advancePaidValue;
+    const installmentAmounts = splitWholeAmount(remainingBalance, monthsValue);
+    const monthlyAmountValue = installmentAmounts[0] ?? 0;
 
     const plan = await prisma.$transaction(async (tx) => {
       const purchase = await tx.purchase.findFirst({
@@ -94,7 +98,7 @@ export async function POST(request: NextRequest) {
           sellingPrice: sellingPriceValue,
           advancePaid: advancePaidValue,
           months: monthsValue,
-          monthlyAmount: parseFloat(monthlyAmount.toFixed(2)),
+          monthlyAmount: monthlyAmountValue,
           startDate: createdAtValue,
           createdAt: createdAtValue,
           tenantId: tenant.id,
@@ -112,7 +116,7 @@ export async function POST(request: NextRequest) {
         installments.push({
           planId: createdPlan.id,
           installmentNumber: i + 1,
-          amount: parseFloat(monthlyAmount.toFixed(2)),
+          amount: installmentAmounts[i] ?? 0,
           dueDate,
           paidAmount: 0,
           status: "pending",
