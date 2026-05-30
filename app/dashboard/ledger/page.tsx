@@ -19,6 +19,7 @@ export default async function PlansWorkspacePage() {
       customerId: true,
       sellingPrice: true,
       advancePaid: true,
+      discount: true,
       account_number: true,
       monthlyAmount: true,
       months: true,
@@ -55,6 +56,7 @@ export default async function PlansWorkspacePage() {
         select: {
           id: true,
           amount: true,
+          description: true,
           transactionDate: true,
         },
       },

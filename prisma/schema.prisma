@@ -169,6 +169,7 @@ model InstallmentPlan {
   tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   sellingPrice    Int
   advancePaid     Int      @default(0)
+  discount        Int      @default(0)
   monthlyAmount   Int
   months          Int
   startDate       DateTime

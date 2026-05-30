@@ -6,6 +6,7 @@ import {
   parseWholeAmount,
   splitWholeAmount,
 } from "@/lib/utils";
+import { ADVANCE_PAYMENT_DESCRIPTION } from "@/lib/plan-transactions";
 
 export async function POST(request: NextRequest) {
   try {
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
             customerId: customerIdValue,
             tenantId: tenant.id,
             amount: advancePaidValue,
-            description: "Advance Payment",
+            description: ADVANCE_PAYMENT_DESCRIPTION,
             transactionDate: createdAtValue,
           },
         });

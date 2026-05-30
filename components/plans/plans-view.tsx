@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BarChart3,
+  Banknote,
   Calendar,
   CheckCircle2,
   ChevronDown,
@@ -13,6 +14,8 @@ import {
   FileDown,
   FileSpreadsheet,
   Layers3,
+  MoreHorizontal,
+  Percent,
   Plus,
   Search,
   TrendingDown,
@@ -25,9 +28,18 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -41,7 +53,8 @@ import { PlanDetailSheet } from "@/components/plans/plan-detail-sheet";
 import { EntityViewButton } from "@/components/shared/entity-view-button";
 import { TransactionForm } from "@/components/transactions/transaction-form";
 import { TransactionDetailSheet } from "@/components/transactions/transaction-detail-sheet";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, wholeNumberInput } from "@/lib/utils";
+import { isCollectedPlanTransaction } from "@/lib/plan-transactions";
 
 type PlanRecord = {
   id: number;
@@ -49,6 +62,7 @@ type PlanRecord = {
   account_number?: number | null;
   sellingPrice: number;
   advancePaid: number;
+  discount: number;
   monthlyAmount: number;
   months: number;
   startDate: string | Date;
@@ -87,6 +101,7 @@ type PlanRecord = {
   transactions: {
     id: number;
     amount: number;
+    description?: string | null;
     transactionDate: string | Date;
   }[];
 };
@@ -100,6 +115,7 @@ type GroupedPlan = {
   plans: PlanRecord[];
   totalRevenue: number;
   advancePaid: number;
+  discount: number;
   generatedRevenue: number;
   pendingRevenue: number;
   progress: number;
@@ -126,6 +142,7 @@ type PlanExportRow = {
   purchaseUnitCost: number;
   sellingPrice: number;
   advancePaid: number;
+  discount: number;
   generatedRevenue: number;
   pendingRevenue: number;
   grossProfitEstimate: number;
@@ -143,6 +160,7 @@ const PLAN_TABLE_COLUMNS: TableColumnDef[] = [
   { key: "total", label: "Total", align: "right" },
   { key: "advancePaid", label: "Advance Paid", align: "right" },
   { key: "paid", label: "Total Paid", align: "right" },
+  { key: "discount", label: "Discount", align: "right" },
   { key: "pending", label: "Pending", align: "right" },
   { key: "created", label: "Created", align: "left" },
   {
@@ -158,6 +176,7 @@ const GROUPED_PLAN_TABLE_COLUMNS: TableColumnDef[] = [
   { key: "label", label: "Group", align: "left" },
   { key: "plans", label: "Plans", align: "center" },
   { key: "total", label: "Total", align: "right" },
+  { key: "discount", label: "Discount", align: "right" },
   { key: "advancePaid", label: "Advance Paid", align: "right" },
   { key: "paid", label: "Paid", align: "right" },
   { key: "pending", label: "Pending", align: "right" },
@@ -176,6 +195,7 @@ const PLAN_MOBILE_METRIC_COLUMNS: {
   valueClassName: string;
 }[] = [
   { key: "total", label: "Total", valueClassName: "text-slate-900" },
+  { key: "discount", label: "Discount", valueClassName: "text-amber-700" },
   {
     key: "advancePaid",
     label: "Advance Paid",
@@ -195,6 +215,7 @@ const EXPORT_COLUMN_DEFS: { key: keyof PlanExportRow; label: string }[] = [
   { key: "purchaseVendor", label: "Vendor" },
   { key: "purchaseUnitCost", label: "Unit Cost" },
   { key: "sellingPrice", label: "Selling Price" },
+  { key: "discount", label: "Discount" },
   { key: "advancePaid", label: "Advance Paid" },
   { key: "generatedRevenue", label: "Collected" },
   { key: "pendingRevenue", label: "Pending" },
@@ -207,16 +228,22 @@ const EXPORT_COLUMN_DEFS: { key: keyof PlanExportRow; label: string }[] = [
 ];
 
 function getPlanMetrics(plan: PlanRecord) {
+  const effectiveTotal = plan.sellingPrice - (plan.discount ?? 0);
   const generatedRevenue = plan.transactions.reduce(
-    (sum, t) => sum + t.amount,
+    (sum, transaction) =>
+      sum +
+      (isCollectedPlanTransaction(transaction.description)
+        ? transaction.amount
+        : 0),
     0,
   );
-  const pendingRevenue = Math.max(plan.sellingPrice - generatedRevenue, 0);
+  const pendingRevenue = Math.max(effectiveTotal - generatedRevenue, 0);
   const progress =
-    plan.sellingPrice > 0 ? (generatedRevenue / plan.sellingPrice) * 100 : 0;
+    effectiveTotal > 0 ? (generatedRevenue / effectiveTotal) * 100 : 0;
 
   return {
     totalRevenue: plan.sellingPrice,
+    effectiveTotal,
     generatedRevenue,
     pendingRevenue,
     progress,
@@ -337,6 +364,17 @@ export function PlansView({
   const [downloadingPlanId, setDownloadingPlanId] = useState<number | null>(
     null,
   );
+  const [advanceDialogPlan, setAdvanceDialogPlan] = useState<PlanRecord | null>(
+    null,
+  );
+  const [advanceAmount, setAdvanceAmount] = useState("");
+  const [savingAdvance, setSavingAdvance] = useState(false);
+  const [advanceError, setAdvanceError] = useState("");
+  const [discountDialogPlan, setDiscountDialogPlan] =
+    useState<PlanRecord | null>(null);
+  const [discountAmount, setDiscountAmount] = useState("");
+  const [savingDiscount, setSavingDiscount] = useState(false);
+  const [discountError, setDiscountError] = useState("");
   const router = useRouter();
 
   const installmentOptions = useMemo(
@@ -443,6 +481,7 @@ export function PlansView({
           plans: [],
           totalRevenue: 0,
           advancePaid: 0,
+          discount: 0,
           generatedRevenue: 0,
           pendingRevenue: 0,
           progress: 0,
@@ -453,6 +492,7 @@ export function PlansView({
       const metrics = getPlanMetrics(plan);
       group.plans.push(plan);
       group.totalRevenue += metrics.totalRevenue;
+      group.discount += plan.discount ?? 0;
       group.advancePaid += plan.advancePaid;
       group.generatedRevenue += metrics.generatedRevenue;
       group.pendingRevenue += metrics.pendingRevenue;
@@ -462,8 +502,9 @@ export function PlansView({
       .map((group) => ({
         ...group,
         progress:
-          group.totalRevenue > 0
-            ? (group.generatedRevenue / group.totalRevenue) * 100
+          group.totalRevenue - group.discount > 0
+            ? (group.generatedRevenue / (group.totalRevenue - group.discount)) *
+              100
             : 0,
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
@@ -488,6 +529,7 @@ export function PlansView({
             purchaseVendor: plan.purchase?.vendor.name ?? "",
             purchaseUnitCost: plan.purchase?.unitCost ?? 0,
             sellingPrice: plan.sellingPrice,
+            discount: plan.discount ?? 0,
             advancePaid: plan.advancePaid,
             generatedRevenue: metrics.generatedRevenue,
             pendingRevenue: metrics.pendingRevenue,
@@ -512,7 +554,10 @@ export function PlansView({
       (sum, p) => sum + getPlanMetrics(p).generatedRevenue,
       0,
     );
-    const pendingRevenue = Math.max(totalRevenue - generatedRevenue, 0);
+    const pendingRevenue = dateFilteredPlans.reduce(
+      (sum, plan) => sum + getPlanMetrics(plan).pendingRevenue,
+      0,
+    );
     const avgProgress =
       dateFilteredPlans.length > 0
         ? dateFilteredPlans.reduce(
@@ -662,6 +707,133 @@ export function PlansView({
     }
   }
 
+  function openAdvanceDialog(plan: PlanRecord) {
+    setAdvanceError("");
+    setAdvanceAmount(String(plan.advancePaid ?? 0));
+    setAdvanceDialogPlan(plan);
+  }
+
+  function openDiscountDialog(plan: PlanRecord) {
+    setDiscountError("");
+    setDiscountAmount(String(plan.discount ?? 0));
+    setDiscountDialogPlan(plan);
+  }
+
+  async function saveAdvance() {
+    if (!advanceDialogPlan) return;
+
+    setSavingAdvance(true);
+    setAdvanceError("");
+
+    try {
+      const response = await fetch(
+        `/api/installment-plans/${advanceDialogPlan.id}/advance`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ advancePaid: advanceAmount }),
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        setAdvanceError(data.error || "Failed to update advance");
+        return;
+      }
+
+      setAdvanceDialogPlan(null);
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      setAdvanceError("Failed to update advance");
+    } finally {
+      setSavingAdvance(false);
+    }
+  }
+
+  async function saveDiscount() {
+    if (!discountDialogPlan) return;
+
+    setSavingDiscount(true);
+    setDiscountError("");
+
+    try {
+      const response = await fetch(
+        `/api/installment-plans/${discountDialogPlan.id}/discount`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ discount: discountAmount }),
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        setDiscountError(data.error || "Failed to update discount");
+        return;
+      }
+
+      setDiscountDialogPlan(null);
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      setDiscountError("Failed to update discount");
+    } finally {
+      setSavingDiscount(false);
+    }
+  }
+
+  function renderPlanActionsDropdown(plan: PlanRecord) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-slate-300"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <MoreHorizontal size={14} />
+            Actions
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuItem
+            className="gap-2"
+            disabled={downloadingPlanId === plan.id}
+            onSelect={() => downloadPlanCard(plan)}
+          >
+            <Download size={14} />
+            Card
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="gap-2"
+            disabled={downloadingPlanId === plan.id}
+            onSelect={() => downloadAcceptanceForm(plan)}
+          >
+            <FileDown size={14} />
+            Acceptance
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="gap-2"
+            onSelect={() => openAdvanceDialog(plan)}
+          >
+            <Banknote size={14} />
+            Advance
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="gap-2"
+            onSelect={() => openDiscountDialog(plan)}
+          >
+            <Percent size={14} />
+            Discount
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
   function getPlanMobileMetricValue(
     key: string,
     plan: PlanRecord,
@@ -670,6 +842,8 @@ export function PlansView({
     switch (key) {
       case "total":
         return formatCurrency(metrics.totalRevenue);
+      case "discount":
+        return formatCurrency(plan.discount ?? 0);
       case "advancePaid":
         return formatCurrency(plan.advancePaid);
       case "paid":
@@ -757,6 +931,12 @@ export function PlansView({
             {formatCurrency(metrics.totalRevenue)}
           </span>
         );
+      case "discount":
+        return (
+          <span className="text-sm font-semibold text-amber-700">
+            {formatCurrency(plan.discount ?? 0)}
+          </span>
+        );
       case "advancePaid":
         return (
           <span className="text-sm font-semibold text-cyan-700">
@@ -803,26 +983,7 @@ export function PlansView({
       case "actions":
         return (
           <div className="flex items-center justify-end gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-slate-300"
-              onClick={() => downloadPlanCard(plan)}
-              disabled={downloadingPlanId === plan.id}
-            >
-              <Download size={14} />
-              {downloadingPlanId === plan.id ? "Generating..." : "Card"}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-slate-300"
-              onClick={() => downloadAcceptanceForm(plan)}
-              disabled={downloadingPlanId === plan.id}
-            >
-              <FileDown size={14} />
-              {downloadingPlanId === plan.id ? "Generating..." : "Acceptance"}
-            </Button>
+            {renderPlanActionsDropdown(plan)}
             <Button
               size="sm"
               variant="outline"
@@ -879,6 +1040,12 @@ export function PlansView({
         return (
           <span className="text-sm font-semibold text-slate-900">
             {formatCurrency(group.totalRevenue)}
+          </span>
+        );
+      case "discount":
+        return (
+          <span className="text-sm font-semibold text-amber-700">
+            {formatCurrency(group.discount)}
           </span>
         );
       case "advancePaid":
@@ -970,6 +1137,12 @@ export function PlansView({
             {formatCurrency(metrics.totalRevenue)}
           </span>
         );
+      case "discount":
+        return (
+          <span className="text-sm text-amber-700">
+            {formatCurrency(plan.discount ?? 0)}
+          </span>
+        );
       case "advancePaid":
         return (
           <span className="text-sm text-cyan-700">
@@ -1000,16 +1173,7 @@ export function PlansView({
       case "expand":
         return (
           <div className="flex items-center justify-end gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-slate-300"
-              onClick={() => downloadPlanCard(plan)}
-              disabled={downloadingPlanId === plan.id}
-            >
-              <Download size={14} />
-              {downloadingPlanId === plan.id ? "Generating..." : "Card"}
-            </Button>
+            {renderPlanActionsDropdown(plan)}
             <Button
               size="sm"
               className="bg-slate-900 hover:bg-slate-800"
@@ -1465,18 +1629,9 @@ export function PlansView({
                         {expanded ? "Hide" : "Show"}
                       </Button>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-slate-300"
-                      onClick={() => downloadPlanCard(plan)}
-                      disabled={downloadingPlanId === plan.id}
-                    >
-                      <Download size={14} />
-                      {downloadingPlanId === plan.id
-                        ? "Generating..."
-                        : "Download Card"}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {renderPlanActionsDropdown(plan)}
+                    </div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       {PLAN_MOBILE_METRIC_COLUMNS.map((metric) => (
                         <div key={metric.key}>
@@ -1759,6 +1914,131 @@ export function PlansView({
               }}
             />
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(advanceDialogPlan)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAdvanceDialogPlan(null);
+            setAdvanceError("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Advance</DialogTitle>
+            <DialogDescription>
+              Update the advance amount for plan #{advanceDialogPlan?.id}. This
+              updates the plan record and its advance transaction.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="advanceAmount">Advance Amount</Label>
+              <Input
+                id="advanceAmount"
+                inputMode="numeric"
+                value={advanceAmount}
+                onChange={(event) =>
+                  setAdvanceAmount(wholeNumberInput(event.target.value))
+                }
+              />
+              {advanceDialogPlan ? (
+                <p className="text-xs text-slate-500">
+                  Selling price:{" "}
+                  {formatCurrency(advanceDialogPlan.sellingPrice)}
+                  {(advanceDialogPlan.discount ?? 0) > 0
+                    ? ` • Discount: ${formatCurrency(advanceDialogPlan.discount)}`
+                    : ""}
+                </p>
+              ) : null}
+              {advanceError ? (
+                <p className="text-sm text-rose-600">{advanceError}</p>
+              ) : null}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAdvanceDialogPlan(null)}
+              disabled={savingAdvance}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-slate-900 hover:bg-slate-800"
+              onClick={saveAdvance}
+              disabled={savingAdvance}
+            >
+              {savingAdvance ? "Saving..." : "Save Advance"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(discountDialogPlan)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDiscountDialogPlan(null);
+            setDiscountError("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Discount</DialogTitle>
+            <DialogDescription>
+              Update the discount for plan #{discountDialogPlan?.id}. This
+              updates the plan record and creates or edits the discount
+              transaction.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="discountAmount">Discount Amount</Label>
+              <Input
+                id="discountAmount"
+                inputMode="numeric"
+                value={discountAmount}
+                onChange={(event) =>
+                  setDiscountAmount(wholeNumberInput(event.target.value))
+                }
+              />
+              {discountDialogPlan ? (
+                <p className="text-xs text-slate-500">
+                  Selling price:{" "}
+                  {formatCurrency(discountDialogPlan.sellingPrice)} • Advance
+                  paid: {formatCurrency(discountDialogPlan.advancePaid)}
+                </p>
+              ) : null}
+              {discountError ? (
+                <p className="text-sm text-rose-600">{discountError}</p>
+              ) : null}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDiscountDialogPlan(null)}
+              disabled={savingDiscount}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-slate-900 hover:bg-slate-800"
+              onClick={saveDiscount}
+              disabled={savingDiscount}
+            >
+              {savingDiscount ? "Saving..." : "Save Discount"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
