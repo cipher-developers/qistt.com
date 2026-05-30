@@ -46,6 +46,7 @@ export const authConfig: NextAuthConfig = {
           role: user.role,
           tenantId: user.tenantId,
           tenantName: user.tenant?.name,
+          tenantLogo: user.tenant?.logo,
         };
         return returnUser;
       },
@@ -58,6 +59,7 @@ export const authConfig: NextAuthConfig = {
         token.role = (user as any).role;
         token.tenantId = (user as any).tenantId;
         token.tenantName = (user as any).tenantName;
+        token.tenantLogo = (user as any).tenantLogo;
       }
       return token;
     },
@@ -67,6 +69,7 @@ export const authConfig: NextAuthConfig = {
         (session.user as any).role = token.role;
         (session.user as any).tenantId = token.tenantId;
         (session.user as any).tenantName = token.tenantName;
+        (session.user as any).tenantLogo = token.tenantLogo;
       }
       return session;
     },

@@ -35,28 +35,55 @@ model Tenant {
   status          String   @default("active")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  companyAddress  String?  // Company address (optional)
+  companyEmail    String?  // Company email (optional)
+  companyPhone    String?  // Company phone number (optional)
   users           User[]
   customers       Customer[]
+  vendors         Vendor[]
   items           Item[]
+  purchases       Purchase[]
   categories      Category[]
+  references      Reference[]
   installmentPlans InstallmentPlan[]
   transactions    Transaction[]
 }
 
-model Customer {
-  id        String     @id @default(cuid())
+model Vendor {
+  id        Int      @id @default(autoincrement())
   name      String
   phone     String
   email     String?
   address   String?
+  notes     String?
   tenantId  String
-  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  installmentPlans InstallmentPlan[]
-  transactions Transaction[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purchases Purchase[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([tenantId])
+  @@unique([tenantId, phone])
+}
+
+model Customer {
+  id          Int        @id @default(autoincrement())
+  name        String
+  phone       String
+  cnic        String?
+  email       String?
+  address     String?
+  referenceId String?
+  reference   Reference? @relation(fields: [referenceId], references: [id], onDelete: SetNull)
+  tenantId    String
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  installmentPlans InstallmentPlan[]
+  transactions Transaction[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([tenantId])
+  @@index([referenceId])
   @@unique([tenantId, phone])
 }
 
@@ -73,9 +100,23 @@ model Category {
   @@unique([tenantId, name])
 }
 
+model Reference {
+  id        String     @id @default(cuid())
+  name      String
+  tenantId  String
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customers Customer[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([tenantId])
+  @@unique([tenantId, name])
+}
+
 model Item {
-  id         String   @id @default(cuid())
+  id         Int      @id @default(autoincrement())
   name       String
+  model      String?
   description String?
   sku        String?
   costPrice  Float?
@@ -84,6 +125,7 @@ model Item {
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   tenantId   String
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purchases  Purchase[]
   installmentPlans InstallmentPlan[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -92,17 +134,43 @@ model Item {
   @@index([categoryId])
 }
 
+model Purchase {
+  id          Int      @id @default(autoincrement())
+  vendorId    Int
+  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  itemId      Int
+  item        Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quantity    Int
+  consumedQty Int      @default(0)
+  unitCost    Int
+  purchasedAt DateTime
+  notes       String?
+  plans       InstallmentPlan[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([vendorId])
+  @@index([itemId])
+}
+
 model InstallmentPlan {
-  id              String   @id @default(cuid())
-  customerId      String
+  id              Int      @id @default(autoincrement())
+  account_number  Int?
+  customerId      Int
   customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  itemId          String
+  itemId          Int
   item            Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  purchaseId      Int?
+  purchase        Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
   tenantId        String
   tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  sellingPrice    Float
-  advancePaid     Float    @default(0)
-  monthlyAmount   Float
+  sellingPrice    Int
+  advancePaid     Int      @default(0)
+  discount        Int      @default(0)
+  monthlyAmount   Int
   months          Int
   startDate       DateTime
   status          String   @default("active")
@@ -114,17 +182,19 @@ model InstallmentPlan {
   @@index([tenantId])
   @@index([customerId])
   @@index([itemId])
+  @@index([purchaseId])
 }
 
 model Installment {
   id              String   @id @default(cuid())
-  planId          String
+  planId          Int
   plan            InstallmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
   installmentNumber Int
   dueDate         DateTime
-  amount          Float
-  paidAmount      Float    @default(0)
+  amount          Int
+  paidAmount      Int    @default(0)
   status          String   @default("pending") // pending, partial, paid
+  transactions    Transaction[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -133,14 +203,16 @@ model Installment {
 }
 
 model Transaction {
-  id              String   @id @default(cuid())
-  planId          String
+  id              Int      @id @default(autoincrement())
+  planId          Int
   plan            InstallmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
-  customerId      String
+  installmentId   String?
+  installment     Installment? @relation(fields: [installmentId], references: [id], onDelete: SetNull)
+  customerId      Int
   customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   tenantId        String
   tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  amount          Float
+  amount          Int
   description     String?
   transactionDate DateTime
   createdAt       DateTime @default(now())
@@ -148,6 +220,7 @@ model Transaction {
 
   @@index([tenantId])
   @@index([planId])
+  @@index([installmentId])
   @@index([customerId])
 }
 

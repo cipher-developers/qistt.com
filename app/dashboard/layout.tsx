@@ -19,18 +19,17 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      {/* Desktop Sidebar - hidden on mobile, visible on md and up */}
-      <div className="hidden md:flex">
+    <div className="dashboard-shell">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(14,116,144,0.16),transparent_45%),radial-gradient(circle_at_85%_10%,rgba(56,189,248,0.2),transparent_38%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_55%,#ecfeff_100%)]" />
+
+      <div className="dashboard-sidebar-rail hidden md:block">
         <Sidebar />
       </div>
-      
-      <div className="flex-1 flex flex-col overflow-hidden w-full">
+
+      <div className="dashboard-panel">
         <TopBar />
-        <main className="flex-1 overflow-auto">
-          <div className="p-4 sm:p-6 max-w-full">
-            {children}
-          </div>
+        <main className="dashboard-main">
+          <div className="dashboard-content">{children}</div>
         </main>
       </div>
     </div>

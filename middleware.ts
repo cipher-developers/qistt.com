@@ -3,23 +3,32 @@ import { NextRequest, NextResponse } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname, hostname } = request.nextUrl;
 
-  // Extract subdomain
-  const parts = hostname.split(".");
+  // Extract subdomain (supports both production domains and *.localhost).
+  const normalizedHost = hostname.toLowerCase();
+  const parts = normalizedHost.split(".");
   let subdomain = "";
 
-  if (parts.length > 2 || (parts.length === 2 && parts[0] !== "www")) {
+  if (normalizedHost.endsWith(".localhost")) {
+    const localLabel = normalizedHost.replace(/\.localhost$/, "").split(".")[0] || "";
+    subdomain = localLabel === "www" ? "" : localLabel;
+  } else if (parts.length > 2 && parts[0] !== "www") {
     subdomain = parts[0];
   }
 
   // Route based on subdomain presence
-  // If subdomain exists, always redirect to /login with tenant context
-  if (subdomain && subdomain !== "www" && pathname !== "/login") {
-    // Subdomain requests without /login path get redirected to /login
+  // For tenant subdomains, only redirect root to /login.
+  // Keep /admin and /dashboard accessible so page-level auth can handle access.
+  if (subdomain && pathname === "/") {
     return NextResponse.redirect(new URL(`/login`, request.nextUrl));
   }
 
-  // If no subdomain and path is /login, redirect to landing
-  if (!subdomain && pathname === "/login" &&  parts[0] !== 'localhost') {
+  // If there is no subdomain and host is not local, always keep users on landing page.
+  const isLocalHost =
+    normalizedHost === "localhost" ||
+    normalizedHost === "127.0.0.1" ||
+    normalizedHost === "[::1]";
+
+  if (!subdomain && !isLocalHost && pathname !== "/") {
     return NextResponse.redirect(new URL("/", request.nextUrl));
   }
 
@@ -35,8 +44,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
 };
 

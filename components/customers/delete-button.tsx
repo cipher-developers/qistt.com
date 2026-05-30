@@ -5,13 +5,19 @@ import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function CustomerDeleteButton({ customerId }: { customerId: string }) {
+export function CustomerDeleteButton({
+  customerId,
+  compact = false,
+}: {
+  customerId: number;
+  compact?: boolean;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function handleDelete() {
     if (!confirm("Are you sure you want to delete this customer?")) return;
-    
+
     setLoading(true);
     try {
       const response = await fetch(`/api/customers/${customerId}`, {
@@ -32,12 +38,16 @@ export function CustomerDeleteButton({ customerId }: { customerId: string }) {
     <Button
       variant="outline"
       size="sm"
-      className="gap-2 text-red-600 hover:text-red-700"
+      className={
+        compact
+          ? "rounded-lg px-3 text-red-600 hover:text-red-700"
+          : "gap-2 text-red-600 hover:text-red-700"
+      }
       onClick={handleDelete}
       disabled={loading}
     >
       <Trash2 size={16} />
-      Delete
+      {compact ? null : "Delete"}
     </Button>
   );
 }

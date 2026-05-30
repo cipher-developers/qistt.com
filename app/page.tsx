@@ -1,6 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Check, ArrowRight, Zap, Users, BarChart3, Shield, Phone, Mail } from "lucide-react";
+import {
+  Check,
+  ArrowRight,
+  Zap,
+  Users,
+  BarChart3,
+  Shield,
+  Phone,
+  Mail,
+} from "lucide-react";
 import { ContactForm } from "@/components/landing/contact-form";
 
 export default function LandingPage() {
@@ -17,9 +26,12 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-3 sm:gap-4">
             <a href="tel:+1234567890" className="flex items-center gap-2">
-              <Button variant="outline" className="border-slate-600 text-slate-200 hover:bg-slate-800 gap-2">
+              <Button
+                variant="outline"
+                className="border-slate-600 text-slate-200 hover:bg-slate-800 gap-2"
+              >
                 <Phone size={18} />
-                <span className="hidden sm:inline">Call Us</span>
+                <span className="hidden  sm:inline">Call Us</span>
               </Button>
             </a>
             <a href="#contact" className="hidden sm:block">
@@ -40,10 +52,11 @@ export default function LandingPage() {
               Made Simple
             </span>
           </h1>
-          
+
           <p className="text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto">
-            Manage installment plans, track payments, and grow your business with Kistly. 
-            Built for SMBs and retailers who want streamlined payment management.
+            Manage installment plans, track payments, and grow your business
+            with Kistly. Built for SMBs and retailers who want streamlined
+            payment management.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
@@ -54,7 +67,10 @@ export default function LandingPage() {
               </Button>
             </a>
             <a href="#features">
-              <Button variant="outline" className="border-slate-500 text-slate-200 hover:bg-slate-800 px-8 py-3 text-lg h-auto w-full sm:w-auto">
+              <Button
+                variant="outline"
+                className="border-slate-500 text-slate-900 hover:bg-slate-100 px-8 py-3 text-lg h-auto w-full sm:w-auto"
+              >
                 Learn More
               </Button>
             </a>
@@ -63,10 +79,17 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <section
+        id="features"
+        className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20"
+      >
         <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Powerful Features</h2>
-          <p className="text-slate-400 text-lg">Everything you need to manage installments effectively</p>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+            Powerful Features
+          </h2>
+          <p className="text-slate-400 text-lg">
+            Everything you need to manage installments effectively
+          </p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -74,22 +97,26 @@ export default function LandingPage() {
             {
               icon: Users,
               title: "Customer Management",
-              description: "Organize and manage all your customers in one central place",
+              description:
+                "Organize and manage all your customers in one central place",
             },
             {
               icon: Zap,
               title: "Automated Payments",
-              description: "Create installment plans and track payments automatically",
+              description:
+                "Create installment plans and track payments automatically",
             },
             {
               icon: BarChart3,
               title: "Analytics & Insights",
-              description: "Get detailed reports and insights into your business performance",
+              description:
+                "Get detailed reports and insights into your business performance",
             },
             {
               icon: Shield,
               title: "Secure & Reliable",
-              description: "Enterprise-grade security to protect your business data",
+              description:
+                "Enterprise-grade security to protect your business data",
             },
             {
               icon: Check,
@@ -99,14 +126,20 @@ export default function LandingPage() {
             {
               icon: ArrowRight,
               title: "Multi-tenant",
-              description: "Support multiple business entities from one platform",
+              description:
+                "Support multiple business entities from one platform",
             },
           ].map((feature, idx) => {
             const Icon = feature.icon;
             return (
-              <Card key={idx} className="bg-slate-800/50 border-slate-700 p-6 hover:bg-slate-800 transition-colors">
+              <Card
+                key={idx}
+                className="bg-slate-800/50 border-slate-700 p-6 hover:bg-slate-800 transition-colors"
+              >
                 <Icon className="w-12 h-12 text-blue-400 mb-4" />
-                <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  {feature.title}
+                </h3>
                 <p className="text-slate-400">{feature.description}</p>
               </Card>
             );
@@ -117,23 +150,53 @@ export default function LandingPage() {
       {/* Benefits Section */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Why Choose Kistly?</h2>
-          <p className="text-slate-400 text-lg">Trusted by businesses across different industries</p>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+            Why Choose Kistly?
+          </h2>
+          <p className="text-slate-400 text-lg">
+            Trusted by businesses across different industries
+          </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
           {[
-            { title: "Reduce Payment Defaults", description: "Automated reminders and payment tracking reduce missed payments by up to 80%" },
-            { title: "Improve Cash Flow", description: "Better visibility into customer payments helps optimize your business cash flow" },
-            { title: "Save Time & Resources", description: "Automate manual payment tracking and reporting tasks" },
-            { title: "Scale Your Business", description: "Handle thousands of installment plans without additional overhead" },
-            { title: "24/7 Customer Support", description: "Dedicated support team ready to help your business succeed" },
-            { title: "Data Security", description: "Bank-level security with encrypted data and regular backups" },
+            {
+              title: "Reduce Payment Defaults",
+              description:
+                "Automated reminders and payment tracking reduce missed payments by up to 80%",
+            },
+            {
+              title: "Improve Cash Flow",
+              description:
+                "Better visibility into customer payments helps optimize your business cash flow",
+            },
+            {
+              title: "Save Time & Resources",
+              description:
+                "Automate manual payment tracking and reporting tasks",
+            },
+            {
+              title: "Scale Your Business",
+              description:
+                "Handle thousands of installment plans without additional overhead",
+            },
+            {
+              title: "24/7 Customer Support",
+              description:
+                "Dedicated support team ready to help your business succeed",
+            },
+            {
+              title: "Data Security",
+              description:
+                "Bank-level security with encrypted data and regular backups",
+            },
           ].map((benefit, idx) => (
             <div key={idx} className="flex gap-4">
               <Check className="w-6 h-6 text-green-400 flex-shrink-0 mt-1" />
               <div>
-                <h3 className="text-lg font-semibold text-white mb-2">{benefit.title}</h3>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  {benefit.title}
+                </h3>
                 <p className="text-slate-400">{benefit.description}</p>
               </div>
             </div>
@@ -142,17 +205,27 @@ export default function LandingPage() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <section
+        id="contact"
+        className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20"
+      >
         <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Get in Touch</h2>
-          <p className="text-slate-400 text-lg">Have questions? Our team is here to help. Contact us today.</p>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+            Get in Touch
+          </h2>
+          <p className="text-slate-400 text-lg">
+            Have questions? Our team is here to help. Contact us today.
+          </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 mb-16">
           <Card className="bg-slate-800/50 border-slate-700 p-6 text-center">
             <Phone className="w-10 h-10 text-blue-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">Call Us</h3>
-            <a href="tel:+1234567890" className="text-slate-300 hover:text-blue-400 transition-colors">
+            <a
+              href="tel:+1234567890"
+              className="text-slate-300 hover:text-blue-400 transition-colors"
+            >
               +1 (234) 567-890
             </a>
           </Card>
@@ -160,15 +233,22 @@ export default function LandingPage() {
           <Card className="bg-slate-800/50 border-slate-700 p-6 text-center">
             <Mail className="w-10 h-10 text-blue-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">Email Us</h3>
-            <a href="mailto:hello@kistly.com" className="text-slate-300 hover:text-blue-400 transition-colors">
+            <a
+              href="mailto:hello@kistly.com"
+              className="text-slate-300 hover:text-blue-400 transition-colors"
+            >
               hello@kistly.com
             </a>
           </Card>
 
           <Card className="bg-slate-800/50 border-slate-700 p-6 text-center">
             <Zap className="w-10 h-10 text-blue-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">Quick Response</h3>
-            <p className="text-slate-300">We respond to inquiries within 24 hours</p>
+            <h3 className="text-lg font-semibold text-white mb-2">
+              Quick Response
+            </h3>
+            <p className="text-slate-300">
+              We respond to inquiries within 24 hours
+            </p>
           </Card>
         </div>
 
@@ -199,36 +279,85 @@ export default function LandingPage() {
             <div>
               <h3 className="text-white font-semibold mb-4">Product</h3>
               <ul className="space-y-2 text-slate-400">
-                <li><a href="#features" className="hover:text-blue-400 transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Security</a></li>
+                <li>
+                  <a
+                    href="#features"
+                    className="hover:text-blue-400 transition-colors"
+                  >
+                    Features
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-blue-400 transition-colors">
+                    Pricing
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-blue-400 transition-colors">
+                    Security
+                  </a>
+                </li>
               </ul>
             </div>
             <div>
               <h3 className="text-white font-semibold mb-4">Company</h3>
               <ul className="space-y-2 text-slate-400">
-                <li><a href="#" className="hover:text-blue-400 transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Blog</a></li>
-                <li><a href="#contact" className="hover:text-blue-400 transition-colors">Contact</a></li>
+                <li>
+                  <a href="#" className="hover:text-blue-400 transition-colors">
+                    About
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-blue-400 transition-colors">
+                    Blog
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#contact"
+                    className="hover:text-blue-400 transition-colors"
+                  >
+                    Contact
+                  </a>
+                </li>
               </ul>
             </div>
             <div>
               <h3 className="text-white font-semibold mb-4">Legal</h3>
               <ul className="space-y-2 text-slate-400">
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Privacy</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Terms</a></li>
+                <li>
+                  <a href="#" className="hover:text-blue-400 transition-colors">
+                    Privacy
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-blue-400 transition-colors">
+                    Terms
+                  </a>
+                </li>
               </ul>
             </div>
             <div>
               <h3 className="text-white font-semibold mb-4">Follow Us</h3>
               <ul className="space-y-2 text-slate-400">
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Twitter</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">LinkedIn</a></li>
+                <li>
+                  <a href="#" className="hover:text-blue-400 transition-colors">
+                    Twitter
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-blue-400 transition-colors">
+                    LinkedIn
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
           <div className="border-t border-slate-700 pt-8 text-center text-slate-400">
-            <p>&copy; 2024 Kistly. All rights reserved. | Professional Installment Management Platform</p>
+            <p>
+              &copy; 2024 Kistly. All rights reserved. | Professional
+              Installment Management Platform
+            </p>
           </div>
         </div>
       </footer>

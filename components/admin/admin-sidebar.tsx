@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import { LayoutDashboard, Users, Building2, LogOut, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,9 @@ const ADMIN_MENU_ITEMS = [
 export function AdminSidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { data: session } = useSession();
+  const tenantName = (session?.user as any)?.tenantName || "Kistly";
+  const tenantLogo = (session?.user as any)?.tenantLogo;
 
   return (
     <>
@@ -46,8 +50,19 @@ export function AdminSidebar() {
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="p-6 border-b border-slate-700">
-          <h1 className="text-2xl font-bold">Kistly Admin</h1>
-          <p className="text-xs text-slate-400 mt-1">System Administration</p>
+          <div className="flex items-center gap-3 mb-2">
+            {tenantLogo ? (
+              <img src={tenantLogo} alt={tenantName} className="h-10 w-10 object-contain rounded" />
+            ) : (
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-sm">{tenantName.charAt(0)}</span>
+              </div>
+            )}
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold truncate">Kistly</h1>
+              <p className="text-xs text-slate-400">Platform Admin</p>
+            </div>
+          </div>
         </div>
 
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
